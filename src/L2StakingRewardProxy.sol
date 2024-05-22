@@ -18,6 +18,7 @@
 pragma solidity ^0.8.21;
 
 interface FarmLike {
+    function rewardsToken() external view returns (address);
     function notifyRewardAmount(uint256 reward) external;
 }
 
@@ -36,9 +37,9 @@ contract L2StakingRewardProxy {
     event Deny(address indexed usr);
     event File(bytes32 indexed what, uint256 data);
 
-    constructor(address _gem, address _farm) {
-        gem = GemLike(_gem);
+    constructor(address _farm) {
         farm = FarmLike(_farm);
+        gem = GemLike(farm.rewardsToken());
 
         wards[msg.sender] = 1;
         emit Rely(msg.sender);

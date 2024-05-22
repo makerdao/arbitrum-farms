@@ -17,6 +17,10 @@
 
 pragma solidity ^0.8.21;
 
+interface GemLike {
+    function approve(address, uint256) external;
+}
+
 interface L1TokenGatewayLike {
     function outboundTransferCustomRefund(
         address l1Token,
@@ -54,6 +58,8 @@ contract L1StakingRewardProxy {
         feeRecipient = _feeRecipient;
         inbox = InboxLike(_inbox);
         gateway = L1TokenGatewayLike(_gateway);
+
+        GemLike(_gem).approve(_gateway, type(uint256).max);
 
         wards[msg.sender] = 1;
         emit Rely(msg.sender);
