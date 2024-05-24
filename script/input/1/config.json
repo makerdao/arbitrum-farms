@@ -1,0 +1,25 @@
+{
+  "domains": {
+    "mainnet": {
+      "type": "root",
+      "rpc": "ETH_RPC_URL",
+      "chainlog": "0xdA0Ab1e0017DEbCd72Be8599041a2aa3bA7e740F"
+    },
+    "arbitrum_one": {
+      "type": "arbitrum",
+      "rpc": "ARB_RPC_URL",
+      "inbox": "0x4Dbd4fc535Ac27206064B68FfCf827b0A60BAB3f",
+      "arbSys": "0x0000000000000000000000000000000000000064"
+    },
+    "sepolia": {
+      "type": "root",
+      "rpc": "SEPOLIA_RPC_URL"
+    },
+    "arbitrum_one_sepolia": {
+      "type": "arbitrum",
+      "rpc": "ARBITRUM_ONE_SEPOLIA_RPC_URL",
+      "inbox": "0xaAe29B0366299461418F5324a79Afc425BE5ae21",
+      "arbSys": "0x0000000000000000000000000000000000000064"
+    }
+  }
+}

@@ -24,8 +24,8 @@ interface GemLike {
 interface L1TokenGatewayLike {
     function outboundTransferCustomRefund(
         address l1Token,
-        address to,
         address refundTo,
+        address to,
         uint256 amount,
         uint256 maxGas,
         uint256 gasPriceBid,
@@ -37,36 +37,36 @@ interface InboxLike {
     function calculateRetryableSubmissionFee(uint256 dataLength, uint256 baseFee) external view returns (uint256);
 }
 
-contract L1StakingRewardProxy {
+contract L1FarmProxy {
     mapping (address => uint256) public wards;
-    uint64 public maxGas; // TODO: figure out reasonable default for arbitrum-one
+    uint64  public maxGas = 300_000; // TODO: figure out reasonable default for arbitrum-one
     uint192 public gasPriceBid = 0.1 gwei; // 0.01 gwei arbitrum-one gas price floor * 10x factor
 
-    address public immutable gem;
+    address public immutable rewardsToken;
     address public immutable l2Proxy;
     address public immutable feeRecipient;
     InboxLike public immutable inbox;
-    L1TokenGatewayLike public immutable gateway;
+    L1TokenGatewayLike public immutable l1Gateway;
 
     event Rely(address indexed usr);
     event Deny(address indexed usr);
     event File(bytes32 indexed what, uint256 data);
 
-    constructor(address _gem, address _l2Proxy, address _feeRecipient, address _inbox, address _gateway) {
-        gem = _gem;
+    constructor(address _rewardsToken, address _l2Proxy, address _feeRecipient, address _inbox, address _l1Gateway) {
+        rewardsToken = _rewardsToken;
         l2Proxy = _l2Proxy;
         feeRecipient = _feeRecipient;
         inbox = InboxLike(_inbox);
-        gateway = L1TokenGatewayLike(_gateway);
+        l1Gateway = L1TokenGatewayLike(_l1Gateway);
 
-        GemLike(_gem).approve(_gateway, type(uint256).max);
+        GemLike(_rewardsToken).approve(_l1Gateway, type(uint256).max);
 
         wards[msg.sender] = 1;
         emit Rely(msg.sender);
     }
 
     modifier auth {
-        require(wards[msg.sender] == 1, "L1StakingRewardProxy/not-authorized");
+        require(wards[msg.sender] == 1, "L1FarmProxy/not-authorized");
         _;
     }
 
@@ -76,7 +76,7 @@ contract L1StakingRewardProxy {
     function file(bytes32 what, uint256 data) external auth {
         if      (what == "maxGas")      maxGas      =  uint64(data);
         else if (what == "gasPriceBid") gasPriceBid = uint192(data);
-        else revert("L1StakingRewardProxy/file-unrecognized-param");
+        else revert("L1FarmProxy/file-unrecognized-param");
         emit File(what, data);
     }
 
@@ -86,7 +86,7 @@ contract L1StakingRewardProxy {
     // @notice Allow governance to reclaim stored ether
     function reclaim(address receiver, uint256 amount) external auth {
         (bool sent,) = receiver.call{value: amount}("");
-        require(sent, "L1StakingRewardProxy/failed-to-send-ether");
+        require(sent, "L1FarmProxy/failed-to-send-ether");
     }
 
     // @notice As this function is permissionless, it could in theory be called at a time where 
@@ -94,16 +94,16 @@ contract L1StakingRewardProxy {
     // This is mitigated by incorporating large enough safety factors in maxGas and gasPriceBid.
     // Note that in any case a failed auto-redeem can be permissonlessly retried for 7 days
     function notifyRewardAmount(uint256 reward) external {
-        require(reward > 0, "L1StakingRewardProxy/no-reward"); // prevent wasting gas for no-op
+        require(reward > 0, "L1FarmProxy/no-reward"); // prevent wasting gas for no-op
 
         (uint256 maxGas_, uint256 gasPriceBid_) = (maxGas, gasPriceBid);
         uint256 maxSubmissionCost = inbox.calculateRetryableSubmissionFee(324, 0); // size of finalizeInboundTransfer calldata = 4 + 10*32 bytes
         uint256 l1CallValue = maxSubmissionCost + maxGas_ * gasPriceBid_;
 
-        gateway.outboundTransferCustomRefund{value: l1CallValue}({
-            l1Token:     gem,
-            to:          l2Proxy,
+        l1Gateway.outboundTransferCustomRefund{value: l1CallValue}({
+            l1Token:     rewardsToken,
             refundTo:    feeRecipient,
+            to:          l2Proxy,
             amount:      reward,
             maxGas:      maxGas_,
             gasPriceBid: gasPriceBid_,

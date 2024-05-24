@@ -23,14 +23,15 @@ interface FarmLike {
 }
 
 interface GemLike {
+    function balanceOf(address) external view returns (uint256);
     function transfer(address, uint256) external;
 }
 
-contract L2StakingRewardProxy {
+contract L2FarmProxy {
     mapping (address => uint256) public wards;
     uint256 public minReward;
 
-    GemLike  public immutable gem;
+    GemLike  public immutable rewardsToken;
     FarmLike public immutable farm;
 
     event Rely(address indexed usr);
@@ -39,14 +40,14 @@ contract L2StakingRewardProxy {
 
     constructor(address _farm) {
         farm = FarmLike(_farm);
-        gem = GemLike(farm.rewardsToken());
+        rewardsToken = GemLike(farm.rewardsToken());
 
         wards[msg.sender] = 1;
         emit Rely(msg.sender);
     }
 
     modifier auth {
-        require(wards[msg.sender] == 1, "L2StakingRewardProxy/not-authorized");
+        require(wards[msg.sender] == 1, "L2FarmProxy/not-authorized");
         _;
     }
 
@@ -55,15 +56,16 @@ contract L2StakingRewardProxy {
 
     function file(bytes32 what, uint256 data) external auth {
         if   (what == "minReward") minReward = data;
-        else revert("L2StakingRewardProxy/file-unrecognized-param");
+        else revert("L2FarmProxy/file-unrecognized-param");
         emit File(what, data);
     }
 
-    // @notice `reward` must exceed a minimum threshold to reduce the impact of calling 
-    // this function too frequently in an attempt to reduce the rewardRate of the farm
-    function notifyRewardAmount(uint256 reward) external {
-        require(reward >= minReward, "L2StakingRewardProxy/reward-too-small");
-        gem.transfer(address(farm), reward);
+    // @notice The transferred reward must exceed a minimum threshold to reduce the impact of 
+    // calling this function too frequently in an attempt to reduce the rewardRate of the farm
+    function forwardReward() external {
+        uint256 reward = rewardsToken.balanceOf(address(this));
+        require(reward >= minReward, "L2FarmProxy/reward-too-small");
+        rewardsToken.transfer(address(farm), reward);
         farm.notifyRewardAmount(reward);
     }
 }
