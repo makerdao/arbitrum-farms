@@ -20,6 +20,15 @@ import { DssInstance } from "dss-test/MCD.sol";
 import { L2FarmProxyInstance } from "./L2FarmProxyInstance.sol";
 import { L2FarmProxySpell } from "./L2FarmProxySpell.sol";
 
+interface DssVestLike {
+    function create(address _usr, uint256 _tot, uint256 _bgn, uint256 _tau, uint256 _eta, address _mgr) external returns (uint256 id);
+    function restrict(uint256 _id) external;
+}
+
+interface VestedRewardsDistributionLike {
+    function file(bytes32 what, uint256 data) external;
+}
+
 interface L1FarmProxyLike {
     function rewardsToken() external view returns (address);
     function l2Proxy() external view returns (address);
@@ -46,6 +55,12 @@ struct MessageParams {
 }
 
 struct ProxiesConfig {
+    address vest;
+    address vestedRewardDistribution;
+    uint256 vestTot;
+    uint256 vestBgn;
+    uint256 vestTau;
+    address vestMgr;
     address rewardsToken;
     address l2Proxy;
     address feeRecipient;
@@ -66,14 +81,30 @@ library FarmProxyInit {
         L1FarmProxyLike l1Proxy = L1FarmProxyLike(l1Proxy_);
 
         // sanity checks
+
         require(l1Proxy.rewardsToken() == cfg.rewardsToken, "FarmProxyInit/gem-mismatch");
         require(l1Proxy.l2Proxy() == cfg.l2Proxy, "FarmProxyInit/l2-proxy-mismatch");
         require(l1Proxy.feeRecipient() == cfg.feeRecipient, "FarmProxyInit/fee-recipient-mismatch");
         require(l1Proxy.inbox() == cfg.inbox, "FarmProxyInit/inbox-mismatch");
         require(l1Proxy.l1Gateway() == cfg.l1Gateway, "FarmProxyInit/l1-gateway-mismatch");
 
-        L1RelayLike l1GovRelay = L1RelayLike(dss.chainlog.getAddress("ARBITRUM_GOV_RELAY"));
+        // setup vest
 
+        DssVestLike vest = DssVestLike(cfg.vest);
+        uint256 vestId = vest.create({
+            _usr: cfg.vestedRewardDistribution,
+            _tot: cfg.vestTot,
+            _bgn: cfg.vestBgn,
+            _tau: cfg.vestTau,
+            _eta: 0,
+            _mgr: cfg.vestMgr
+        });
+        vest.restrict(vestId);
+        VestedRewardsDistributionLike(cfg.vestedRewardDistribution).file("vestId", vestId);
+
+        // relay L2 spell
+
+        L1RelayLike l1GovRelay = L1RelayLike(dss.chainlog.getAddress("ARBITRUM_GOV_RELAY"));
         uint256 l1CallValue = cfg.xchainMsg.maxSubmissionCost + cfg.xchainMsg.maxGas * cfg.xchainMsg.gasPriceBid;
 
         // not strictly necessary (as the retryable ticket creation would otherwise fail) 
@@ -88,7 +119,6 @@ library FarmProxyInit {
             gasPriceBid:       cfg.xchainMsg.gasPriceBid,
             maxSubmissionCost: cfg.xchainMsg.maxSubmissionCost
         });
-
         dss.chainlog.setAddress("ARBITRUM_L1_FARM_PROXY", l1Proxy_);
     }
 }

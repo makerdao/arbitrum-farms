@@ -30,7 +30,6 @@ import { GemMock } from "lib/new-bridge/test/mocks/GemMock.sol";
 
 import { StakingRewards, StakingRewardsDeploy, StakingRewardsDeployParams } from "lib/endgame-toolkit/script/dependencies/StakingRewardsDeploy.sol";
 import { VestedRewardsDistributionDeploy, VestedRewardsDistributionDeployParams } from "lib/endgame-toolkit/script/dependencies/VestedRewardsDistributionDeploy.sol";
-import { VestedRewardsDistributionInit, VestedRewardsDistributionInitParams } from "lib/endgame-toolkit/script/dependencies/VestedRewardsDistributionInit.sol";
 import { VestedRewardsDistribution } from "lib/endgame-toolkit/src/VestedRewardsDistribution.sol";
 
 import { FarmProxyDeploy } from "deploy/FarmProxyDeploy.sol";
@@ -49,12 +48,14 @@ interface GemLike {
 }
 
 interface DssVestLike {
+    function usr(uint256) external view returns (address);
     function bgn(uint256) external view returns (uint256);
+    function clf(uint256) external view returns (uint256);
     function fin(uint256) external view returns (uint256);
+    function mgr(uint256) external view returns (address);
+    function res(uint256) external view returns (uint256);
     function tot(uint256) external view returns (uint256);
     function unpaid(uint256 _id) external view returns (uint256);
-    function create(address _usr, uint256 _tot, uint256 _bgn, uint256 _tau, uint256 _eta, address _mgr) external returns (uint256 id);
-    function restrict(uint256 _id) external;
 }
 
 contract IntegrationTest is DssTest {
@@ -184,39 +185,7 @@ contract IntegrationTest is DssTest {
             inbox:        INBOX,
             l1Gateway:    l1Gateway
         });
-        (bool success,) = l1Proxy.call{value: 1 ether}(""); // not using deal() here, so as to check payable fallback
-        assertTrue(success);
 
-        ProxyMessageParams memory xchainMsg = ProxyMessageParams({
-            gasPriceBid:       0.1 gwei,
-            maxGas:            300_000,
-            maxSubmissionCost: 0.01 ether
-        });
-        ProxiesConfig memory cfg = ProxiesConfig({
-            rewardsToken:   l1Token,
-            l2Proxy:        address(l2Proxy),
-            feeRecipient:   L2_GOV_RELAY,
-            inbox:          INBOX,
-            l1Gateway:      l1Gateway,
-            minReward:      1 ether,
-            rewardsDuration: 1 days, 
-            xchainMsg:      xchainMsg
-        });
-        vm.startPrank(PAUSE_PROXY);
-        FarmProxyInit.initProxies(dss, l1Proxy, l2ProxyInstance, cfg);
-        vm.stopPrank();
-
-        // test L1 side of initProxies
-        assertEq(dss.chainlog.getAddress("ARBITRUM_L1_FARM_PROXY"), l1Proxy);
-
-        l2Domain.relayFromHost(true);
-
-        // test L2 side of initProxies
-        assertEq(l2Proxy.minReward(), cfg.minReward);
-        assertEq(farm.rewardsDistribution(), address(l2Proxy));
-        assertEq(farm.rewardsDuration(), cfg.rewardsDuration);
-
-        l1Domain.selectFork();
         vest = DssVestLike(dss.chainlog.getAddress("MCD_VEST_MKR")); // TODO: change to use NGT vest when deployed
         VestedRewardsDistributionDeployParams memory distributionParams = VestedRewardsDistributionDeployParams({
             deployer:  address(this),
@@ -226,21 +195,50 @@ contract IntegrationTest is DssTest {
         });
         vestedRewardDistribution = VestedRewardsDistribution(VestedRewardsDistributionDeploy.deploy(distributionParams));
 
+        (bool success,) = l1Proxy.call{value: 1 ether}("");
+        assertTrue(success);
+        ProxyMessageParams memory xchainMsg = ProxyMessageParams({
+            gasPriceBid:       0.1 gwei,
+            maxGas:            300_000,
+            maxSubmissionCost: 0.01 ether
+        });
+        ProxiesConfig memory cfg = ProxiesConfig({
+            vest:                     address(vest),
+            vestedRewardDistribution: address(vestedRewardDistribution),
+            vestTot:                  100 * 1e18,
+            vestBgn:                  block.timestamp,
+            vestTau:                  100 days,
+            vestMgr:                  address(0),
+            rewardsToken:             l1Token,
+            l2Proxy:                  address(l2Proxy),
+            feeRecipient:             L2_GOV_RELAY,
+            inbox:                    INBOX,
+            l1Gateway:                l1Gateway,
+            minReward:                1 ether,
+            rewardsDuration:          1 days, 
+            xchainMsg:                xchainMsg
+        });
         vm.startPrank(PAUSE_PROXY);
-        vestId = vest.create({
-            _usr: address(vestedRewardDistribution),
-            _tot: 100 * 1e18,
-            _bgn: block.timestamp,
-            _tau: 100 days,
-            _eta: 0,
-            _mgr: address(0)
-        });
-        vest.restrict(vestId);
-        VestedRewardsDistributionInitParams memory distributionInitParams = VestedRewardsDistributionInitParams({
-            vestId: vestId
-        });
-        VestedRewardsDistributionInit.init(address(vestedRewardDistribution), distributionInitParams);
-        vm.stopPrank();        
+        FarmProxyInit.initProxies(dss, l1Proxy, l2ProxyInstance, cfg);
+        vm.stopPrank();
+
+        // test L1 side of initProxies
+        assertEq(dss.chainlog.getAddress("ARBITRUM_L1_FARM_PROXY"), l1Proxy);
+        vestId = vestedRewardDistribution.vestId();
+        assertEq(vest.usr(vestId), cfg.vestedRewardDistribution);
+        assertEq(vest.tot(vestId), cfg.vestTot);
+        assertEq(vest.bgn(vestId), cfg.vestBgn);
+        assertEq(vest.fin(vestId), cfg.vestBgn + cfg.vestTau);
+        assertEq(vest.clf(vestId), cfg.vestBgn);
+        assertEq(vest.mgr(vestId), cfg.vestMgr);
+        assertEq(vest.res(vestId), 1);
+
+        l2Domain.relayFromHost(true);
+
+        // test L2 side of initProxies
+        assertEq(l2Proxy.minReward(), cfg.minReward);
+        assertEq(farm.rewardsDistribution(), address(l2Proxy));
+        assertEq(farm.rewardsDuration(), cfg.rewardsDuration);
     }
 
     function testDistribution() public {
