@@ -39,7 +39,14 @@ interface InboxLike {
 
 contract L1FarmProxy {
     mapping (address => uint256) public wards;
-    uint64  public maxGas = 300_000; // TODO: figure out reasonable default for arbitrum-one
+
+    // maxGas is estimated based on the formula in https://docs.arbitrum.io/build-decentralized-apps/how-to-estimate-gas#breaking-down-the-formula
+    // where we use:
+    // * L2G = 44171
+    // * (L1P)_max = 16 * 100 gwei
+    // * L1S = 367
+    // * (L2P)_min = 0.01 gwei
+    uint64  public maxGas = 60_000_000; // > 44171 + (16 * 100 gwei * 367) / 0.01 gwei = 58_764_171;
     uint192 public gasPriceBid = 0.1 gwei; // 0.01 gwei arbitrum-one gas price floor * 10x factor
 
     address public immutable rewardsToken;
@@ -92,7 +99,7 @@ contract L1FarmProxy {
     // @notice As this function is permissionless, it could in theory be called at a time where 
     // maxGas and/or gasPriceBid are too low for the auto-redeem of the gem deposit RetryableTicket.
     // This is mitigated by incorporating large enough safety factors in maxGas and gasPriceBid.
-    // Note that in any case a failed auto-redeem can be permissonlessly retried for 7 days
+    // Note that in any case a failed auto-redeem can be permissionlessly retried for 7 days
     function notifyRewardAmount(uint256 reward) external {
         require(reward > 0, "L1FarmProxy/no-reward"); // prevent wasting gas for no-op
 
