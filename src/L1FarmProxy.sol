@@ -40,13 +40,7 @@ interface InboxLike {
 contract L1FarmProxy {
     mapping (address => uint256) public wards;
 
-    // maxGas is estimated based on the formula in https://docs.arbitrum.io/build-decentralized-apps/how-to-estimate-gas#breaking-down-the-formula
-    // where we use:
-    // * L2G = 44171
-    // * (L1P)_max = 16 * 100 gwei
-    // * L1S = 367
-    // * (L2P)_min = 0.01 gwei
-    uint64  public maxGas = 60_000_000; // > 44171 + (16 * 100 gwei * 367) / 0.01 gwei = 58_764_171;
+    uint64  public maxGas = 70_000_000; // determined by running deploy/Estimate.s.sol and adding some margin
     uint192 public gasPriceBid = 0.1 gwei; // 0.01 gwei arbitrum-one gas price floor * 10x factor
 
     address public immutable rewardsToken;

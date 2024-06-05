@@ -13,13 +13,17 @@
     },
     "sepolia": {
       "type": "root",
-      "rpc": "SEPOLIA_RPC_URL"
+      "rpc": "SEPOLIA_RPC_URL",
+      "gateway": "0x95a9f6c87F6BF487875c9C09e70A5c8DC9B41EF4",
+      "nst": "0x0B2eaB37Ab96685Ad2b1A6FdDb8921e156073f84"
     },
     "arbitrum_one_sepolia": {
       "type": "arbitrum",
       "rpc": "ARBITRUM_ONE_SEPOLIA_RPC_URL",
       "inbox": "0xaAe29B0366299461418F5324a79Afc425BE5ae21",
-      "arbSys": "0x0000000000000000000000000000000000000064"
+      "arbSys": "0x0000000000000000000000000000000000000064",
+      "gateway": "0x0CB73f1A5732fbAeFAB5646B422eCF15E12db95B",
+      "nst": "0x76F0DEE2c570401300f85c0Dc451780AD9f0e72c"
     }
   }
 }
