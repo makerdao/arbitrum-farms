@@ -39,9 +39,9 @@ interface InboxLike {
 
 contract L1FarmProxy {
     mapping (address => uint256) public wards;
-
-    uint64  public maxGas = 70_000_000; // determined by running deploy/Estimate.s.sol and adding some margin
-    uint192 public gasPriceBid = 0.1 gwei; // 0.01 gwei arbitrum-one gas price floor * 10x factor
+    uint64  public maxGas;
+    uint64  public gasPriceBid;
+    uint128 public minReward;
 
     address public immutable rewardsToken;
     address public immutable l2Proxy;
@@ -74,9 +74,12 @@ contract L1FarmProxy {
     function rely(address usr) external auth { wards[usr] = 1; emit Rely(usr); }
     function deny(address usr) external auth { wards[usr] = 0; emit Deny(usr); }
 
+    // @notice Validation of the `data` boundaries is outside the scope of this 
+    // contract and is assumed to be carried out in the corresponding spell process
     function file(bytes32 what, uint256 data) external auth {
         if      (what == "maxGas")      maxGas      =  uint64(data);
-        else if (what == "gasPriceBid") gasPriceBid = uint192(data);
+        else if (what == "gasPriceBid") gasPriceBid =  uint64(data);
+        else if (what == "minReward")   minReward   = uint128(data);
         else revert("L1FarmProxy/file-unrecognized-param");
         emit File(what, data);
     }
@@ -95,20 +98,20 @@ contract L1FarmProxy {
     // This is mitigated by incorporating large enough safety factors in maxGas and gasPriceBid.
     // Note that in any case a failed auto-redeem can be permissionlessly retried for 7 days
     function notifyRewardAmount(uint256 reward) external {
-        require(reward > 0, "L1FarmProxy/no-reward"); // prevent wasting gas for no-op
+        (uint256 maxGas_, uint256 gasPriceBid_, uint256 minReward_) = (maxGas, gasPriceBid, minReward);
+        if (reward > 0 && reward >= minReward_) {
+            uint256 maxSubmissionCost = inbox.calculateRetryableSubmissionFee(324, 0); // size of finalizeInboundTransfer calldata = 4 + 10*32 bytes
+            uint256 l1CallValue = maxSubmissionCost + maxGas_ * gasPriceBid_;
 
-        (uint256 maxGas_, uint256 gasPriceBid_) = (maxGas, gasPriceBid);
-        uint256 maxSubmissionCost = inbox.calculateRetryableSubmissionFee(324, 0); // size of finalizeInboundTransfer calldata = 4 + 10*32 bytes
-        uint256 l1CallValue = maxSubmissionCost + maxGas_ * gasPriceBid_;
-
-        l1Gateway.outboundTransferCustomRefund{value: l1CallValue}({
-            l1Token:     rewardsToken,
-            refundTo:    feeRecipient,
-            to:          l2Proxy,
-            amount:      reward,
-            maxGas:      maxGas_,
-            gasPriceBid: gasPriceBid_,
-            data:        abi.encode(maxSubmissionCost, bytes(""))
-        });
+            l1Gateway.outboundTransferCustomRefund{value: l1CallValue}({
+                l1Token:     rewardsToken,
+                refundTo:    feeRecipient,
+                to:          l2Proxy,
+                amount:      reward,
+                maxGas:      maxGas_,
+                gasPriceBid: gasPriceBid_,
+                data:        abi.encode(maxSubmissionCost, bytes(""))
+            });
+        }
     }
 }

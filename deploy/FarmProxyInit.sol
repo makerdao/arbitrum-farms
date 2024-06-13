@@ -35,6 +35,7 @@ interface L1FarmProxyLike {
     function feeRecipient() external view returns (address);
     function inbox() external view returns (address);
     function l1Gateway() external view returns (address);
+    function file(bytes32 what, uint256 data) external;
 }
 
 interface L1RelayLike {
@@ -66,9 +67,12 @@ struct ProxiesConfig {
     address feeRecipient;
     address inbox;
     address l1Gateway;
-    uint256 minReward;
-    uint256 rewardsDuration;
-    MessageParams xchainMsg;
+    uint256 maxGas;          // For the L1 proxy
+    uint256 gasPriceBid;     // For the L1 proxy
+    uint256 l1MinReward;     // For the L1 proxy
+    uint256 l2MinReward;     // For the L2 proxy
+    uint256 rewardsDuration; // For the farm on L2
+    MessageParams xchainMsg; // For the xchain message executing the L2 spell
 }
 
 library FarmProxyInit {
@@ -87,6 +91,10 @@ library FarmProxyInit {
         require(l1Proxy.feeRecipient() == cfg.feeRecipient, "FarmProxyInit/fee-recipient-mismatch");
         require(l1Proxy.inbox() == cfg.inbox, "FarmProxyInit/inbox-mismatch");
         require(l1Proxy.l1Gateway() == cfg.l1Gateway, "FarmProxyInit/l1-gateway-mismatch");
+        require(cfg.gasPriceBid <= 10_000 gwei, "FarmProxyInit/gas-price-bid-out-of-bounds");
+        require(cfg.maxGas <= 10_000_000_000, "FarmProxyInit/max-gas-out-of-bounds");
+        require(cfg.l1MinReward <= type(uint128).max, "FarmProxyInit/l1-min-reward-out-of-bounds");
+        require(cfg.l2MinReward > 0, "FarmProxyInit/l2-min-reward-out-of-bounds");
 
         // setup vest
 
@@ -102,7 +110,11 @@ library FarmProxyInit {
         vest.restrict(vestId);
         VestedRewardsDistributionLike(cfg.vestedRewardDistribution).file("vestId", vestId);
 
-        // relay L2 spell
+        // setup L1 proxy
+
+        l1Proxy.file("minReward", cfg.l1MinReward);
+
+        // setup L2 proxy
 
         L1RelayLike l1GovRelay = L1RelayLike(dss.chainlog.getAddress("ARBITRUM_GOV_RELAY"));
         uint256 l1CallValue = cfg.xchainMsg.maxSubmissionCost + cfg.xchainMsg.maxGas * cfg.xchainMsg.gasPriceBid;
@@ -113,12 +125,15 @@ library FarmProxyInit {
 
         l1GovRelay.relay({
             target:            l2ProxyInstance.spell,
-            targetData:        abi.encodeCall(L2FarmProxySpell.init, (cfg.minReward, cfg.rewardsDuration)),
+            targetData:        abi.encodeCall(L2FarmProxySpell.init, (cfg.l2MinReward, cfg.rewardsDuration)),
             l1CallValue:       l1CallValue,
             maxGas:            cfg.xchainMsg.maxGas,
             gasPriceBid:       cfg.xchainMsg.gasPriceBid,
             maxSubmissionCost: cfg.xchainMsg.maxSubmissionCost
         });
+
+        // update chainlog
+
         dss.chainlog.setAddress("ARBITRUM_L1_FARM_PROXY", l1Proxy_);
     }
 }
