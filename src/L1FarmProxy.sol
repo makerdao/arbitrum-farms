@@ -99,19 +99,20 @@ contract L1FarmProxy {
     // Note that in any case a failed auto-redeem can be permissionlessly retried for 7 days
     function notifyRewardAmount(uint256 reward) external {
         (uint256 maxGas_, uint256 gasPriceBid_, uint256 minReward_) = (maxGas, gasPriceBid, minReward);
-        if (reward > 0 && reward >= minReward_) {
-            uint256 maxSubmissionCost = inbox.calculateRetryableSubmissionFee(324, 0); // size of finalizeInboundTransfer calldata = 4 + 10*32 bytes
-            uint256 l1CallValue = maxSubmissionCost + maxGas_ * gasPriceBid_;
 
-            l1Gateway.outboundTransferCustomRefund{value: l1CallValue}({
-                l1Token:     rewardsToken,
-                refundTo:    feeRecipient,
-                to:          l2Proxy,
-                amount:      reward,
-                maxGas:      maxGas_,
-                gasPriceBid: gasPriceBid_,
-                data:        abi.encode(maxSubmissionCost, bytes(""))
-            });
-        }
+        require(reward > 0 && reward >= minReward_, "L1FarmProxy/reward-too-small");
+
+        uint256 maxSubmissionCost = inbox.calculateRetryableSubmissionFee(324, 0); // size of finalizeInboundTransfer calldata = 4 + 10*32 bytes
+        uint256 l1CallValue = maxSubmissionCost + maxGas_ * gasPriceBid_;
+
+        l1Gateway.outboundTransferCustomRefund{value: l1CallValue}({
+            l1Token:     rewardsToken,
+            refundTo:    feeRecipient,
+            to:          l2Proxy,
+            amount:      reward,
+            maxGas:      maxGas_,
+            gasPriceBid: gasPriceBid_,
+            data:        abi.encode(maxSubmissionCost, bytes(""))
+        });
     }
 }

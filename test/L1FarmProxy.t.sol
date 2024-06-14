@@ -88,22 +88,18 @@ contract L1FarmProxyTest is DssTest {
     }
 
     function testNotifyRewardAmount() public {
+        vm.expectRevert("L1FarmProxy/reward-too-small");
+        l1Proxy.notifyRewardAmount(0);
+
+        l1Proxy.file("minReward", 1000 ether);
+
+        vm.expectRevert("L1FarmProxy/reward-too-small");
+        l1Proxy.notifyRewardAmount(500 ether);
+
         (bool success,) = address(l1Proxy).call{value: 1 ether}("");
         assertTrue(success);
         rewardsToken.transfer(address(l1Proxy), 1000 ether);
         uint256 ethBefore = address(l1Proxy).balance;
-        uint256 tokenBefore = rewardsToken.balanceOf(address(l1Proxy));
-
-        l1Proxy.notifyRewardAmount(0);
-
-        assertEq(address(l1Proxy).balance, ethBefore);
-        assertEq(rewardsToken.balanceOf(address(l1Proxy)), tokenBefore);
-
-        l1Proxy.file("minReward", 1000 ether);
-        l1Proxy.notifyRewardAmount(500 ether);
-
-        assertEq(address(l1Proxy).balance, ethBefore);
-        assertEq(rewardsToken.balanceOf(address(l1Proxy)), tokenBefore);
 
         l1Proxy.notifyRewardAmount(1000 ether);
 
