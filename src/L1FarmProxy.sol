@@ -93,6 +93,21 @@ contract L1FarmProxy {
         require(sent, "L1FarmProxy/failed-to-send-ether");
     }
 
+    // @notice Estimate the amount of ETH consumed as msg.value from this contract to bridge the reward to the L2 proxy
+    // as well as the RetryableTicket submission cost.
+    // @param l1BaseFee L1 baseFee to use for the estimate. Pass 0 to use block.basefee
+    // @param _maxGas Max gas to cover the L2 execution of the deposit. Pass 0 to use the stored `maxGas` value.
+    // @param _gasPriceBid Gas price bid for the L2 execution of the deposit. Pass 0 to use the stored `gasPriceBid` value.
+    function estimateDepositCost(
+        uint256 l1BaseFee,
+        uint256 _maxGas,
+        uint256 _gasPriceBid
+    ) public view returns (uint256 l1CallValue, uint256 maxSubmissionCost) {
+        maxSubmissionCost = inbox.calculateRetryableSubmissionFee(324, l1BaseFee); // size of finalizeInboundTransfer calldata = 4 + 10*32 bytes
+        (uint256 maxGas_, uint256 gasPriceBid_) = (_maxGas > 0 ? _maxGas : maxGas, _gasPriceBid > 0 ? _gasPriceBid : gasPriceBid);
+        l1CallValue = maxSubmissionCost + maxGas_ * gasPriceBid_;
+    }
+
     // @notice As this function is permissionless, it could in theory be called at a time where 
     // maxGas and/or gasPriceBid are too low for the auto-redeem of the gem deposit RetryableTicket.
     // This is mitigated by incorporating large enough safety factors in maxGas and gasPriceBid.
@@ -102,9 +117,7 @@ contract L1FarmProxy {
 
         require(reward > 0 && reward >= minReward_, "L1FarmProxy/reward-too-small");
 
-        uint256 maxSubmissionCost = inbox.calculateRetryableSubmissionFee(324, 0); // size of finalizeInboundTransfer calldata = 4 + 10*32 bytes
-        uint256 l1CallValue = maxSubmissionCost + maxGas_ * gasPriceBid_;
-
+        (uint256 l1CallValue, uint256 maxSubmissionCost) = estimateDepositCost(0, maxGas_, gasPriceBid_);
         l1Gateway.outboundTransferCustomRefund{value: l1CallValue}({
             l1Token:     rewardsToken,
             refundTo:    feeRecipient,

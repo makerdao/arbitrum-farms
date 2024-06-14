@@ -100,11 +100,12 @@ contract L1FarmProxyTest is DssTest {
         assertTrue(success);
         rewardsToken.transfer(address(l1Proxy), 1000 ether);
         uint256 ethBefore = address(l1Proxy).balance;
+        (uint256 l1CallValue,) = l1Proxy.estimateDepositCost(0, 0, 0);
 
         l1Proxy.notifyRewardAmount(1000 ether);
 
         assertEq(rewardsToken.balanceOf(escrow), 1000 ether);
         assertEq(rewardsToken.balanceOf(address(l1Proxy)), 0);
-        assertLt(address(l1Proxy).balance, ethBefore);
+        assertEq(address(l1Proxy).balance, ethBefore - l1CallValue);
     }
 }
