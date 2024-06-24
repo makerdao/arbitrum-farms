@@ -80,13 +80,13 @@ library FarmProxyInit {
         DssInstance memory         dss,
         address                    l1Proxy_,
         L2FarmProxyInstance memory l2ProxyInstance,
-        ProxiesConfig memory         cfg
+        ProxiesConfig memory       cfg
     ) internal {
         L1FarmProxyLike l1Proxy = L1FarmProxyLike(l1Proxy_);
 
         // sanity checks
 
-        require(l1Proxy.rewardsToken() == cfg.rewardsToken, "FarmProxyInit/gem-mismatch");
+        require(l1Proxy.rewardsToken() == cfg.rewardsToken, "FarmProxyInit/rewards-token-mismatch");
         require(l1Proxy.l2Proxy() == cfg.l2Proxy, "FarmProxyInit/l2-proxy-mismatch");
         require(l1Proxy.feeRecipient() == cfg.feeRecipient, "FarmProxyInit/fee-recipient-mismatch");
         require(l1Proxy.inbox() == cfg.inbox, "FarmProxyInit/inbox-mismatch");
