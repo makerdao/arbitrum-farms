@@ -228,21 +228,23 @@ contract IntegrationTest is DssTest {
         // test L1 side of initProxies
         assertEq(dss.chainlog.getAddress("ARBITRUM_L1_FARM_PROXY"), address(l1Proxy));
         vestId = vestedRewardDistribution.vestId();
-        assertEq(vest.usr(vestId), cfg.vestedRewardDistribution);
-        assertEq(vest.tot(vestId), cfg.vestTot);
-        assertEq(vest.bgn(vestId), cfg.vestBgn);
-        assertEq(vest.fin(vestId), cfg.vestBgn + cfg.vestTau);
-        assertEq(vest.clf(vestId), cfg.vestBgn);
-        assertEq(vest.mgr(vestId), cfg.vestMgr);
-        assertEq(vest.res(vestId), 1);
-        assertEq(l1Proxy.minReward(), cfg.l1MinReward);
+        assertEq(vest.usr(vestId),      cfg.vestedRewardDistribution);
+        assertEq(vest.tot(vestId),      cfg.vestTot);
+        assertEq(vest.bgn(vestId),      cfg.vestBgn);
+        assertEq(vest.fin(vestId),      cfg.vestBgn + cfg.vestTau);
+        assertEq(vest.clf(vestId),      cfg.vestBgn);
+        assertEq(vest.mgr(vestId),      cfg.vestMgr);
+        assertEq(vest.res(vestId),      1);
+        assertEq(l1Proxy.maxGas(),      cfg.maxGas);
+        assertEq(l1Proxy.gasPriceBid(), cfg.gasPriceBid);
+        assertEq(l1Proxy.minReward(),   cfg.l1MinReward);
 
         l2Domain.relayFromHost(true);
 
         // test L2 side of initProxies
-        assertEq(l2Proxy.minReward(), cfg.l2MinReward);
+        assertEq(l2Proxy.minReward(),        cfg.l2MinReward);
         assertEq(farm.rewardsDistribution(), address(l2Proxy));
-        assertEq(farm.rewardsDuration(), cfg.rewardsDuration);
+        assertEq(farm.rewardsDuration(),     cfg.rewardsDuration);
     }
 
     function testDistribution() public {

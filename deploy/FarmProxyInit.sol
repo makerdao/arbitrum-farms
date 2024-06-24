@@ -91,8 +91,8 @@ library FarmProxyInit {
         require(l1Proxy.feeRecipient() == cfg.feeRecipient, "FarmProxyInit/fee-recipient-mismatch");
         require(l1Proxy.inbox() == cfg.inbox, "FarmProxyInit/inbox-mismatch");
         require(l1Proxy.l1Gateway() == cfg.l1Gateway, "FarmProxyInit/l1-gateway-mismatch");
-        require(cfg.gasPriceBid <= 10_000 gwei, "FarmProxyInit/gas-price-bid-out-of-bounds");
         require(cfg.maxGas <= 10_000_000_000, "FarmProxyInit/max-gas-out-of-bounds");
+        require(cfg.gasPriceBid <= 10_000 gwei, "FarmProxyInit/gas-price-bid-out-of-bounds");
         require(cfg.l1MinReward <= type(uint128).max, "FarmProxyInit/l1-min-reward-out-of-bounds");
         require(cfg.l2MinReward > 0, "FarmProxyInit/l2-min-reward-out-of-bounds");
 
@@ -112,7 +112,9 @@ library FarmProxyInit {
 
         // setup L1 proxy
 
-        l1Proxy.file("minReward", cfg.l1MinReward);
+        l1Proxy.file("maxGas",      cfg.maxGas);
+        l1Proxy.file("gasPriceBid", cfg.gasPriceBid);
+        l1Proxy.file("minReward",   cfg.l1MinReward);
 
         // setup L2 proxy
 
