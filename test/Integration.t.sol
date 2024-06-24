@@ -22,11 +22,11 @@ import "dss-test/DssTest.sol";
 import { Domain } from "dss-test/domains/Domain.sol";
 import { ArbitrumDomain } from "dss-test/domains/ArbitrumDomain.sol";
 
-import { TokenGatewayDeploy } from "lib/new-bridge/deploy/TokenGatewayDeploy.sol";
-import { L2TokenGatewaySpell } from "lib/new-bridge/deploy/L2TokenGatewaySpell.sol";
-import { L2TokenGatewayInstance } from "lib/new-bridge/deploy/L2TokenGatewayInstance.sol";
-import { TokenGatewayInit, GatewaysConfig, MessageParams as GatewayMessageParams } from "lib/new-bridge/deploy/TokenGatewayInit.sol";
-import { GemMock } from "lib/new-bridge/test/mocks/GemMock.sol";
+import { TokenGatewayDeploy } from "lib/arbitrum-token-bridge/deploy/TokenGatewayDeploy.sol";
+import { L2TokenGatewaySpell } from "lib/arbitrum-token-bridge/deploy/L2TokenGatewaySpell.sol";
+import { L2TokenGatewayInstance } from "lib/arbitrum-token-bridge/deploy/L2TokenGatewayInstance.sol";
+import { TokenGatewayInit, GatewaysConfig, MessageParams as GatewayMessageParams } from "lib/arbitrum-token-bridge/deploy/TokenGatewayInit.sol";
+import { GemMock } from "lib/arbitrum-token-bridge/test/mocks/GemMock.sol";
 
 import { StakingRewards, StakingRewardsDeploy, StakingRewardsDeployParams } from "lib/endgame-toolkit/script/dependencies/StakingRewardsDeploy.sol";
 import { VestedRewardsDistributionDeploy, VestedRewardsDistributionDeployParams } from "lib/endgame-toolkit/script/dependencies/VestedRewardsDistributionDeploy.sol";

@@ -1,9 +1,9 @@
 [submodule "lib/dss-test"]
 	path = lib/dss-test
 	url = https://github.com/makerdao/dss-test
-[submodule "lib/new-bridge"]
-	path = lib/new-bridge
-	url = https://github.com/telome/new-bridge
+[submodule "lib/arbitrum-token-bridge"]
+	path = lib/arbitrum-token-bridge
+	url = https://github.com/makerdao/arbitrum-token-bridge
 [submodule "lib/endgame-toolkit"]
 	path = lib/endgame-toolkit
 	url = https://github.com/makerdao/endgame-toolkit
