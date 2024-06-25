@@ -8,7 +8,7 @@ contract InboxMock {
     function calculateRetryableSubmissionFee(
         uint256 dataLength,
         uint256 baseFee
-    ) external view returns (uint256 fee) {
+    ) external pure returns (uint256 fee) {
         fee = (1400 + 6 * dataLength) * (baseFee == 0 ? 30 gwei : baseFee);
     }
 }

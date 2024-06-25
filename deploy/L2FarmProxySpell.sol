@@ -35,6 +35,8 @@ contract L2FarmProxySpell {
     function file(bytes32 what, uint256 data) external { l2Proxy.file(what, data); }
 
     function init(uint256 minReward, uint256 rewardsDuration) external {
+        // TODO: add L2-side sanity checks
+
         l2Proxy.file("minReward", minReward);
     
         FarmLike farm = FarmLike(address(l2Proxy.farm()));

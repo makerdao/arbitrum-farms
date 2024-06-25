@@ -26,11 +26,13 @@ import { TokenGatewayDeploy } from "lib/arbitrum-token-bridge/deploy/TokenGatewa
 import { L2TokenGatewaySpell } from "lib/arbitrum-token-bridge/deploy/L2TokenGatewaySpell.sol";
 import { L2TokenGatewayInstance } from "lib/arbitrum-token-bridge/deploy/L2TokenGatewayInstance.sol";
 import { TokenGatewayInit, GatewaysConfig, MessageParams as GatewayMessageParams } from "lib/arbitrum-token-bridge/deploy/TokenGatewayInit.sol";
-import { GemMock } from "lib/arbitrum-token-bridge/test/mocks/GemMock.sol";
 
 import { StakingRewards, StakingRewardsDeploy, StakingRewardsDeployParams } from "lib/endgame-toolkit/script/dependencies/StakingRewardsDeploy.sol";
 import { VestedRewardsDistributionDeploy, VestedRewardsDistributionDeployParams } from "lib/endgame-toolkit/script/dependencies/VestedRewardsDistributionDeploy.sol";
 import { VestedRewardsDistribution } from "lib/endgame-toolkit/src/VestedRewardsDistribution.sol";
+
+import { GemMock } from "test/mocks/GemMock.sol";
+import { DssVestMintableMock } from "test/mocks/DssVestMock.sol";
 
 import { FarmProxyDeploy } from "deploy/FarmProxyDeploy.sol";
 import { L2FarmProxySpell } from "deploy/L2FarmProxySpell.sol";
@@ -43,21 +45,6 @@ interface L1RelayLike {
     function l2GovernanceRelay() external view returns (address);
 }
 
-interface GemLike {
-    function balanceOf(address) external view returns (uint256);
-}
-
-interface DssVestLike {
-    function usr(uint256) external view returns (address);
-    function bgn(uint256) external view returns (uint256);
-    function clf(uint256) external view returns (uint256);
-    function fin(uint256) external view returns (uint256);
-    function mgr(uint256) external view returns (address);
-    function res(uint256) external view returns (uint256);
-    function tot(uint256) external view returns (uint256);
-    function unpaid(uint256 _id) external view returns (uint256);
-}
-
 contract IntegrationTest is DssTest {
     string config;
     Domain l1Domain;
@@ -67,11 +54,11 @@ contract IntegrationTest is DssTest {
     DssInstance dss;
     address PAUSE_PROXY;
     address ESCROW;
-    address l1Token;
+    GemMock l1Token;
     address l1Gateway;
     address INBOX;
     L1FarmProxy l1Proxy;
-    DssVestLike vest;
+    DssVestMintableMock vest;
     uint256 vestId;
     VestedRewardsDistribution vestedRewardDistribution;
 
@@ -119,7 +106,7 @@ contract IntegrationTest is DssTest {
         vm.label(address(l2Token), "l2Token");
 
         address[] memory l1Tokens = new address[](1);
-        l1Tokens[0] = l1Token;
+        l1Tokens[0] = address(l1Token);
         address[] memory l2Tokens = new address[](1);
         l2Tokens[0] = address(l2Token);
         GatewayMessageParams memory xchainMsg = GatewayMessageParams({
@@ -151,10 +138,15 @@ contract IntegrationTest is DssTest {
         dss = l1Domain.dss();
         PAUSE_PROXY  = dss.chainlog.getAddress("MCD_PAUSE_PROXY");
         L2_GOV_RELAY = L1RelayLike(dss.chainlog.getAddress("ARBITRUM_GOV_RELAY")).l2GovernanceRelay();
-        l1Token = dss.chainlog.getAddress("MCD_GOV"); // TODO: change to use NGT when deployed
         vm.label(address(PAUSE_PROXY),  "PAUSE_PROXY");
         vm.label(address(L2_GOV_RELAY), "L2_GOV_RELAY");
-        vm.label(l1Token, "l1Token");
+
+        vm.startPrank(PAUSE_PROXY);
+        dss.chainlog.setAddress("NST", address(123)); // TODO: Remove after NST has been setup in a spell
+        l1Token = new GemMock(100 ether);
+        vest = new DssVestMintableMock(address(l1Token));
+        vest.file("cap", type(uint256).max);
+        vm.stopPrank();
 
         setupGateways();
 
@@ -179,14 +171,13 @@ contract IntegrationTest is DssTest {
         l1Proxy = L1FarmProxy(payable(FarmProxyDeploy.deployL1Proxy({
             deployer:     address(this),
             owner:        PAUSE_PROXY,
-            gem:          l1Token, 
+            gem:          address(l1Token), 
             l2Proxy:      address(l2Proxy),
             feeRecipient: L2_GOV_RELAY,
             inbox:        INBOX,
             l1Gateway:    l1Gateway
         })));
 
-        vest = DssVestLike(dss.chainlog.getAddress("MCD_VEST_MKR")); // TODO: change to use NGT vest when deployed
         VestedRewardsDistributionDeployParams memory distributionParams = VestedRewardsDistributionDeployParams({
             deployer:  address(this),
             owner:     PAUSE_PROXY,
@@ -209,7 +200,7 @@ contract IntegrationTest is DssTest {
             vestBgn:                  block.timestamp,
             vestTau:                  100 days,
             vestMgr:                  address(0),
-            rewardsToken:             l1Token,
+            rewardsToken:             address(l1Token),
             l2Proxy:                  address(l2Proxy),
             feeRecipient:             L2_GOV_RELAY,
             inbox:                    INBOX,
@@ -226,18 +217,19 @@ contract IntegrationTest is DssTest {
         vm.stopPrank();
 
         // test L1 side of initProxies
-        assertEq(dss.chainlog.getAddress("ARBITRUM_L1_FARM_PROXY"), address(l1Proxy));
         vestId = vestedRewardDistribution.vestId();
-        assertEq(vest.usr(vestId),      cfg.vestedRewardDistribution);
-        assertEq(vest.tot(vestId),      cfg.vestTot);
-        assertEq(vest.bgn(vestId),      cfg.vestBgn);
-        assertEq(vest.fin(vestId),      cfg.vestBgn + cfg.vestTau);
-        assertEq(vest.clf(vestId),      cfg.vestBgn);
-        assertEq(vest.mgr(vestId),      cfg.vestMgr);
-        assertEq(vest.res(vestId),      1);
-        assertEq(l1Proxy.maxGas(),      cfg.maxGas);
-        assertEq(l1Proxy.gasPriceBid(), cfg.gasPriceBid);
-        assertEq(l1Proxy.minReward(),   cfg.l1MinReward);
+        assertEq(l1Token.wards(cfg.vest),                           1);
+        assertEq(vest.usr(vestId),                                  cfg.vestedRewardDistribution);
+        assertEq(vest.tot(vestId),                                  cfg.vestTot);
+        assertEq(vest.bgn(vestId),                                  cfg.vestBgn);
+        assertEq(vest.fin(vestId),                                  cfg.vestBgn + cfg.vestTau);
+        assertEq(vest.clf(vestId),                                  cfg.vestBgn);
+        assertEq(vest.mgr(vestId),                                  cfg.vestMgr);
+        assertEq(vest.res(vestId),                                  1);
+        assertEq(l1Proxy.maxGas(),                                  cfg.maxGas);
+        assertEq(l1Proxy.gasPriceBid(),                             cfg.gasPriceBid);
+        assertEq(l1Proxy.minReward(),                               cfg.l1MinReward);
+        assertEq(dss.chainlog.getAddress("ARBITRUM_L1_FARM_PROXY"), address(l1Proxy));
 
         l2Domain.relayFromHost(true);
 
@@ -255,11 +247,11 @@ contract IntegrationTest is DssTest {
         vm.warp(vest.bgn(vestId) + minReward * (vest.fin(vestId) - vest.bgn(vestId)) / vest.tot(vestId));
         uint256 amount = vest.unpaid(vestId);
         assertGe(amount, minReward);
-        assertEq(GemLike(l1Token).balanceOf(ESCROW), 0);
+        assertEq(l1Token.balanceOf(ESCROW), 0);
 
         vestedRewardDistribution.distribute();
 
-        assertEq(GemLike(l1Token).balanceOf(ESCROW), amount);
+        assertEq(l1Token.balanceOf(ESCROW), amount);
 
         l2Domain.relayFromHost(true);
 

@@ -20,12 +20,20 @@ import { DssInstance } from "dss-test/MCD.sol";
 import { L2FarmProxyInstance } from "./L2FarmProxyInstance.sol";
 import { L2FarmProxySpell } from "./L2FarmProxySpell.sol";
 
+interface AuthLike {
+    function rely(address usr) external;
+}
+
 interface DssVestLike {
+    function gem() external view returns (address);
     function create(address _usr, uint256 _tot, uint256 _bgn, uint256 _tau, uint256 _eta, address _mgr) external returns (uint256 id);
     function restrict(uint256 _id) external;
 }
 
 interface VestedRewardsDistributionLike {
+    function dssVest() external view returns (address);
+    function stakingRewards() external view returns (address);
+    function gem() external view returns (address);
     function file(bytes32 what, uint256 data) external;
 }
 
@@ -83,22 +91,33 @@ library FarmProxyInit {
         ProxiesConfig memory       cfg
     ) internal {
         L1FarmProxyLike l1Proxy = L1FarmProxyLike(l1Proxy_);
+        DssVestLike vest = DssVestLike(cfg.vest);
+        VestedRewardsDistributionLike distribution = VestedRewardsDistributionLike(cfg.vestedRewardDistribution);
 
         // sanity checks
 
-        require(l1Proxy.rewardsToken() == cfg.rewardsToken, "FarmProxyInit/rewards-token-mismatch");
-        require(l1Proxy.l2Proxy() == cfg.l2Proxy, "FarmProxyInit/l2-proxy-mismatch");
-        require(l1Proxy.feeRecipient() == cfg.feeRecipient, "FarmProxyInit/fee-recipient-mismatch");
-        require(l1Proxy.inbox() == cfg.inbox, "FarmProxyInit/inbox-mismatch");
-        require(l1Proxy.l1Gateway() == cfg.l1Gateway, "FarmProxyInit/l1-gateway-mismatch");
-        require(cfg.maxGas <= 10_000_000_000, "FarmProxyInit/max-gas-out-of-bounds");
-        require(cfg.gasPriceBid <= 10_000 gwei, "FarmProxyInit/gas-price-bid-out-of-bounds");
-        require(cfg.l1MinReward <= type(uint128).max, "FarmProxyInit/l1-min-reward-out-of-bounds");
-        require(cfg.l2MinReward > 0, "FarmProxyInit/l2-min-reward-out-of-bounds");
+        require(vest.gem()                    == cfg.rewardsToken,  "FarmProxyInit/vest-gem-mismatch");
+        require(distribution.gem()            == cfg.rewardsToken,  "FarmProxyInit/distribution-gem-mismatch");
+        require(distribution.stakingRewards() == l1Proxy_,          "FarmProxyInit/distribution-farm-mismatch");
+        require(distribution.dssVest()        == cfg.vest,          "FarmProxyInit/distribution-vest-mismatch");
+        require(l1Proxy.rewardsToken()        == cfg.rewardsToken,  "FarmProxyInit/rewards-token-mismatch");
+        require(l1Proxy.l2Proxy()             == cfg.l2Proxy,       "FarmProxyInit/l2-proxy-mismatch");
+        require(l1Proxy.feeRecipient()        == cfg.feeRecipient,  "FarmProxyInit/fee-recipient-mismatch");
+        require(l1Proxy.inbox()               == cfg.inbox,         "FarmProxyInit/inbox-mismatch");
+        require(l1Proxy.l1Gateway()           == cfg.l1Gateway,     "FarmProxyInit/l1-gateway-mismatch");
+        require(cfg.maxGas                    <= 10_000_000_000,    "FarmProxyInit/max-gas-out-of-bounds");
+        require(cfg.gasPriceBid               <= 10_000 gwei,       "FarmProxyInit/gas-price-bid-out-of-bounds");
+        require(cfg.l1MinReward               <= type(uint128).max, "FarmProxyInit/l1-min-reward-out-of-bounds");
+        require(cfg.l2MinReward               > 0,                  "FarmProxyInit/l2-min-reward-out-of-bounds");
 
         // setup vest
 
-        DssVestLike vest = DssVestLike(cfg.vest);
+        if (cfg.rewardsToken == dss.chainlog.getAddress("NST")) {
+            // TODO: NST isn't currently planned as an L2 rewardsToken, so do we want to handle this case at all?
+            AuthLike(dss.chainlog.getAddress("MCD_VAT")).rely(cfg.vest);
+        } else {
+            AuthLike(cfg.rewardsToken).rely(cfg.vest);
+        }
         uint256 vestId = vest.create({
             _usr: cfg.vestedRewardDistribution,
             _tot: cfg.vestTot,
@@ -108,7 +127,7 @@ library FarmProxyInit {
             _mgr: cfg.vestMgr
         });
         vest.restrict(vestId);
-        VestedRewardsDistributionLike(cfg.vestedRewardDistribution).file("vestId", vestId);
+        distribution.file("vestId", vestId);
 
         // setup L1 proxy
 
