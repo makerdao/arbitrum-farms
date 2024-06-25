@@ -77,6 +77,8 @@ struct ProxiesConfig {
     uint256 l2MinReward;     // For the L2 proxy
     uint256 rewardsDuration; // For the farm on L2
     MessageParams xchainMsg; // For the xchain message executing the L2 spell
+    bytes32 proxyChainlogKey;
+    bytes32 distrChainlogKey;
 }
 
 library FarmProxyInit {
@@ -145,6 +147,7 @@ library FarmProxyInit {
 
         // update chainlog
 
-        dss.chainlog.setAddress("ARBITRUM_L1_FARM_PROXY", l1Proxy_);
+        dss.chainlog.setAddress(cfg.proxyChainlogKey, l1Proxy_);
+        dss.chainlog.setAddress(cfg.distrChainlogKey, cfg.vestedRewardDistribution);
     }
 }

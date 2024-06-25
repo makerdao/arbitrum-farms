@@ -210,7 +210,9 @@ contract IntegrationTest is DssTest {
             l1MinReward:              0,
             l2MinReward:              1 ether,
             rewardsDuration:          1 days, 
-            xchainMsg:                xchainMsg
+            xchainMsg:                xchainMsg,
+            proxyChainlogKey:         "FARM_PROXY_TKA_TKB_ARB",
+            distrChainlogKey:         "REWARDS_DISTRIBUTION_TKA_TKB_ARB"
         });
         vm.startPrank(PAUSE_PROXY);
         FarmProxyInit.initProxies(dss, address(l1Proxy), l2ProxyInstance, cfg);
@@ -218,17 +220,18 @@ contract IntegrationTest is DssTest {
 
         // test L1 side of initProxies
         vestId = vestedRewardDistribution.vestId();
-        assertEq(vest.usr(vestId),                                  cfg.vestedRewardDistribution);
-        assertEq(vest.tot(vestId),                                  cfg.vestTot);
-        assertEq(vest.bgn(vestId),                                  cfg.vestBgn);
-        assertEq(vest.fin(vestId),                                  cfg.vestBgn + cfg.vestTau);
-        assertEq(vest.clf(vestId),                                  cfg.vestBgn);
-        assertEq(vest.mgr(vestId),                                  cfg.vestMgr);
-        assertEq(vest.res(vestId),                                  1);
-        assertEq(l1Proxy.maxGas(),                                  cfg.maxGas);
-        assertEq(l1Proxy.gasPriceBid(),                             cfg.gasPriceBid);
-        assertEq(l1Proxy.minReward(),                               cfg.l1MinReward);
-        assertEq(dss.chainlog.getAddress("ARBITRUM_L1_FARM_PROXY"), address(l1Proxy));
+        assertEq(vest.usr(vestId),                                            cfg.vestedRewardDistribution);
+        assertEq(vest.tot(vestId),                                            cfg.vestTot);
+        assertEq(vest.bgn(vestId),                                            cfg.vestBgn);
+        assertEq(vest.fin(vestId),                                            cfg.vestBgn + cfg.vestTau);
+        assertEq(vest.clf(vestId),                                            cfg.vestBgn);
+        assertEq(vest.mgr(vestId),                                            cfg.vestMgr);
+        assertEq(vest.res(vestId),                                            1);
+        assertEq(l1Proxy.maxGas(),                                            cfg.maxGas);
+        assertEq(l1Proxy.gasPriceBid(),                                       cfg.gasPriceBid);
+        assertEq(l1Proxy.minReward(),                                         cfg.l1MinReward);
+        assertEq(dss.chainlog.getAddress("FARM_PROXY_TKA_TKB_ARB"),           address(l1Proxy));
+        assertEq(dss.chainlog.getAddress("REWARDS_DISTRIBUTION_TKA_TKB_ARB"), cfg.vestedRewardDistribution);
 
         l2Domain.relayFromHost(true);
 
