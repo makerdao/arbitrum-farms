@@ -72,7 +72,7 @@ contract L1FarmProxyTest is DssTest {
     }
 
     function testReclaim() public {
-        (bool success,) = address(l1Proxy).call{value: 1 ether}(""); // not using deal() here, so as to check payable fallback
+        (bool success,) = address(l1Proxy).call{value: 1 ether}(""); // not using deal() here, so as to check receive()
         assertTrue(success);
         address to = address(0x123);
         uint256 proxyBefore = address(l1Proxy).balance;
@@ -84,7 +84,7 @@ contract L1FarmProxyTest is DssTest {
         assertEq(address(l1Proxy).balance, proxyBefore - 0.2 ether);
 
         vm.expectRevert("L1FarmProxy/failed-to-send-ether");
-        l1Proxy.reclaim(address(this), 0.2 ether); // no fallback
+        l1Proxy.reclaim(to, 1 ether); // insufficient balance
     }
 
     function testNotifyRewardAmount() public {
@@ -99,6 +99,8 @@ contract L1FarmProxyTest is DssTest {
         (bool success,) = address(l1Proxy).call{value: 1 ether}("");
         assertTrue(success);
         rewardsToken.transfer(address(l1Proxy), 1000 ether);
+        assertEq(rewardsToken.balanceOf(escrow), 0);
+        assertEq(rewardsToken.balanceOf(address(l1Proxy)), 1000 ether);
         uint256 ethBefore = address(l1Proxy).balance;
         (uint256 l1CallValue,) = l1Proxy.estimateDepositCost(0, 0, 0);
 

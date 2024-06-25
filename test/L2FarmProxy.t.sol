@@ -40,10 +40,10 @@ contract L2FarmProxyTest is DssTest {
     function testConstructor() public {
         vm.expectEmit(true, true, true, true);
         emit Rely(address(this));
-        L2FarmProxy g = new L2FarmProxy(farm);
-        assertEq(address(g.farm()), farm);
-        assertEq(address(g.rewardsToken()), address(rewardsToken));
-        assertEq(g.wards(address(this)), 1);
+        L2FarmProxy p = new L2FarmProxy(farm);
+        assertEq(address(p.farm()), farm);
+        assertEq(address(p.rewardsToken()), address(rewardsToken));
+        assertEq(p.wards(address(this)), 1);
     }
 
     function testAuth() public {
