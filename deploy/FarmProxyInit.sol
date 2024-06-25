@@ -17,7 +17,6 @@
 pragma solidity >=0.8.0;
 
 import { DssInstance } from "dss-test/MCD.sol";
-import { L2FarmProxyInstance } from "./L2FarmProxyInstance.sol";
 import { L2FarmProxySpell } from "./L2FarmProxySpell.sol";
 
 interface DssVestLike {
@@ -37,7 +36,6 @@ interface L1FarmProxyLike {
     function rewardsToken() external view returns (address);
     function l2Proxy() external view returns (address);
     function feeRecipient() external view returns (address);
-    function inbox() external view returns (address);
     function l1Gateway() external view returns (address);
     function file(bytes32 what, uint256 data) external;
 }
@@ -61,57 +59,57 @@ struct MessageParams {
 
 struct ProxiesConfig {
     address vest;
-    address vestedRewardDistribution;
     uint256 vestTot;
     uint256 vestBgn;
     uint256 vestTau;
     address vestMgr;
-    address rewardsToken;
-    address l2Proxy;
+    address vestedRewardsDistribution;
+    address l1RewardsToken;
+    address l2RewardsToken;
     address feeRecipient;
-    address inbox;
     address l1Gateway;
     uint256 maxGas;          // For the L1 proxy
     uint256 gasPriceBid;     // For the L1 proxy
     uint256 l1MinReward;     // For the L1 proxy
     uint256 l2MinReward;     // For the L2 proxy
-    uint256 rewardsDuration; // For the farm on L2
+    address farm;            // The L2 farm
+    uint256 rewardsDuration; // For the L2 farm
     MessageParams xchainMsg; // For the xchain message executing the L2 spell
-    bytes32 proxyChainlogKey;
-    bytes32 distrChainlogKey;
+    bytes32 proxyChainlogKey; // Chainlog key for the L1 proxy
+    bytes32 distrChainlogKey; // Chainlog key for vestedRewardsDistribution
 }
 
 library FarmProxyInit {
     function initProxies(
-        DssInstance memory         dss,
-        address                    l1Proxy_,
-        L2FarmProxyInstance memory l2ProxyInstance,
-        ProxiesConfig memory       cfg
+        DssInstance memory   dss,
+        address              l1Proxy_,
+        address              l2Proxy,
+        address              l2Spell,
+        ProxiesConfig memory cfg
     ) internal {
         L1FarmProxyLike l1Proxy = L1FarmProxyLike(l1Proxy_);
         DssVestLike vest = DssVestLike(cfg.vest);
-        VestedRewardsDistributionLike distribution = VestedRewardsDistributionLike(cfg.vestedRewardDistribution);
+        VestedRewardsDistributionLike distribution = VestedRewardsDistributionLike(cfg.vestedRewardsDistribution);
 
         // sanity checks
 
-        require(vest.gem()                    == cfg.rewardsToken,  "FarmProxyInit/vest-gem-mismatch");
-        require(distribution.gem()            == cfg.rewardsToken,  "FarmProxyInit/distribution-gem-mismatch");
-        require(distribution.stakingRewards() == l1Proxy_,          "FarmProxyInit/distribution-farm-mismatch");
-        require(distribution.dssVest()        == cfg.vest,          "FarmProxyInit/distribution-vest-mismatch");
-        require(l1Proxy.rewardsToken()        == cfg.rewardsToken,  "FarmProxyInit/rewards-token-mismatch");
-        require(l1Proxy.l2Proxy()             == cfg.l2Proxy,       "FarmProxyInit/l2-proxy-mismatch");
-        require(l1Proxy.feeRecipient()        == cfg.feeRecipient,  "FarmProxyInit/fee-recipient-mismatch");
-        require(l1Proxy.inbox()               == cfg.inbox,         "FarmProxyInit/inbox-mismatch");
-        require(l1Proxy.l1Gateway()           == cfg.l1Gateway,     "FarmProxyInit/l1-gateway-mismatch");
-        require(cfg.maxGas                    <= 10_000_000_000,    "FarmProxyInit/max-gas-out-of-bounds");
-        require(cfg.gasPriceBid               <= 10_000 gwei,       "FarmProxyInit/gas-price-bid-out-of-bounds");
-        require(cfg.l1MinReward               <= type(uint128).max, "FarmProxyInit/l1-min-reward-out-of-bounds");
-        require(cfg.l2MinReward               > 0,                  "FarmProxyInit/l2-min-reward-out-of-bounds");
+        require(vest.gem()                    == cfg.l1RewardsToken,                   "FarmProxyInit/vest-gem-mismatch");
+        require(distribution.gem()            == cfg.l1RewardsToken,                   "FarmProxyInit/distribution-gem-mismatch");
+        require(distribution.stakingRewards() == l1Proxy_,                             "FarmProxyInit/distribution-farm-mismatch");
+        require(distribution.dssVest()        == cfg.vest,                             "FarmProxyInit/distribution-vest-mismatch");
+        require(l1Proxy.rewardsToken()        == cfg.l1RewardsToken,                   "FarmProxyInit/rewards-token-mismatch");
+        require(l1Proxy.l2Proxy()             == l2Proxy,                              "FarmProxyInit/l2-proxy-mismatch");
+        require(l1Proxy.feeRecipient()        == cfg.feeRecipient,                     "FarmProxyInit/fee-recipient-mismatch");
+        require(l1Proxy.l1Gateway()           == cfg.l1Gateway,                        "FarmProxyInit/l1-gateway-mismatch");
+        require(cfg.maxGas                    <= 10_000_000_000,                       "FarmProxyInit/max-gas-out-of-bounds");
+        require(cfg.gasPriceBid               <= 10_000 gwei,                          "FarmProxyInit/gas-price-bid-out-of-bounds");
+        require(cfg.l1MinReward               <= type(uint128).max,                    "FarmProxyInit/l1-min-reward-out-of-bounds");
+        require(cfg.l2MinReward               > 0,                                     "FarmProxyInit/l2-min-reward-out-of-bounds");
 
         // setup vest
 
         uint256 vestId = vest.create({
-            _usr: cfg.vestedRewardDistribution,
+            _usr: cfg.vestedRewardsDistribution,
             _tot: cfg.vestTot,
             _bgn: cfg.vestBgn,
             _tau: cfg.vestTau,
@@ -137,8 +135,14 @@ library FarmProxyInit {
         require(address(l1GovRelay).balance >= l1CallValue, "FarmProxyInit/insufficient-relay-balance");
 
         l1GovRelay.relay({
-            target:            l2ProxyInstance.spell,
-            targetData:        abi.encodeCall(L2FarmProxySpell.init, (cfg.l2MinReward, cfg.rewardsDuration)),
+            target:            l2Spell,
+            targetData:        abi.encodeCall(L2FarmProxySpell.init, (
+                l2Proxy,
+                cfg.l2RewardsToken,
+                cfg.farm,
+                cfg.l2MinReward,
+                cfg.rewardsDuration
+            )),
             l1CallValue:       l1CallValue,
             maxGas:            cfg.xchainMsg.maxGas,
             gasPriceBid:       cfg.xchainMsg.gasPriceBid,
@@ -148,6 +152,6 @@ library FarmProxyInit {
         // update chainlog
 
         dss.chainlog.setAddress(cfg.proxyChainlogKey, l1Proxy_);
-        dss.chainlog.setAddress(cfg.distrChainlogKey, cfg.vestedRewardDistribution);
+        dss.chainlog.setAddress(cfg.distrChainlogKey, cfg.vestedRewardsDistribution);
     }
 }

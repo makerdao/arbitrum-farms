@@ -18,7 +18,6 @@ pragma solidity >=0.8.0;
 
 import { ScriptTools } from "dss-test/ScriptTools.sol";
 
-import { L2FarmProxyInstance } from "./L2FarmProxyInstance.sol";
 import { L2FarmProxySpell } from "./L2FarmProxySpell.sol";
 import { L1FarmProxy } from "src/L1FarmProxy.sol";
 import { L2FarmProxy } from "src/L2FarmProxy.sol";
@@ -30,10 +29,9 @@ library FarmProxyDeploy {
         address gem,
         address l2Proxy,
         address feeRecipient,
-        address inbox,
         address l1Gateway
     ) internal returns (address l1Proxy) {
-        l1Proxy = address(new L1FarmProxy(gem, l2Proxy, feeRecipient, inbox, l1Gateway));
+        l1Proxy = address(new L1FarmProxy(gem, l2Proxy, feeRecipient, l1Gateway));
         ScriptTools.switchOwner(l1Proxy, deployer, owner);
     }
 
@@ -41,9 +39,12 @@ library FarmProxyDeploy {
         address deployer,
         address owner,
         address farm
-    ) internal returns (L2FarmProxyInstance memory l2ProxyInstance) {
-        l2ProxyInstance.proxy = address(new L2FarmProxy(farm));
-        l2ProxyInstance.spell = address(new L2FarmProxySpell(l2ProxyInstance.proxy));
-        ScriptTools.switchOwner(l2ProxyInstance.proxy, deployer, owner);
+    ) internal returns (address l2Proxy) {
+        l2Proxy = address(new L2FarmProxy(farm));
+        ScriptTools.switchOwner(l2Proxy, deployer, owner);
+    }
+
+    function deployL2ProxySpell() internal returns (address l2Spell) {
+        l2Spell = address(new L2FarmProxySpell());
     }
 }

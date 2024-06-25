@@ -22,6 +22,7 @@ interface GemLike {
 }
 
 interface L1TokenGatewayLike {
+    function inbox() external view returns (address);
     function outboundTransferCustomRefund(
         address l1Token,
         address refundTo,
@@ -53,12 +54,12 @@ contract L1FarmProxy {
     event Deny(address indexed usr);
     event File(bytes32 indexed what, uint256 data);
 
-    constructor(address _rewardsToken, address _l2Proxy, address _feeRecipient, address _inbox, address _l1Gateway) {
+    constructor(address _rewardsToken, address _l2Proxy, address _feeRecipient, address _l1Gateway) {
         rewardsToken = _rewardsToken;
         l2Proxy = _l2Proxy;
         feeRecipient = _feeRecipient;
-        inbox = InboxLike(_inbox);
         l1Gateway = L1TokenGatewayLike(_l1Gateway);
+        inbox = InboxLike(l1Gateway.inbox());
 
         GemLike(_rewardsToken).approve(_l1Gateway, type(uint256).max);
 

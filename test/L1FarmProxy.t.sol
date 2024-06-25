@@ -36,23 +36,23 @@ contract L1FarmProxyTest is DssTest {
 
     function setUp() public {
         inbox = address(new InboxMock());
-        gateway = address(new L1TokenGatewayMock(escrow));
+        gateway = address(new L1TokenGatewayMock(inbox, escrow));
         rewardsToken = new GemMock(1_000_000 ether);
-        l1Proxy = new L1FarmProxy(address(rewardsToken), l2Proxy, feeRecipient, inbox, gateway);
+        l1Proxy = new L1FarmProxy(address(rewardsToken), l2Proxy, feeRecipient, gateway);
     }
 
     function testConstructor() public {
         vm.expectEmit(true, true, true, true);
         emit Rely(address(this));
-        L1FarmProxy g = new L1FarmProxy(address(rewardsToken), l2Proxy, feeRecipient, inbox, gateway);
+        L1FarmProxy p = new L1FarmProxy(address(rewardsToken), l2Proxy, feeRecipient, gateway);
         
-        assertEq(g.rewardsToken(), address(rewardsToken));
-        assertEq(g.l2Proxy(), l2Proxy);
-        assertEq(g.feeRecipient(), feeRecipient);
-        assertEq(address(g.inbox()), inbox);
-        assertEq(address(g.l1Gateway()), gateway);
-        assertEq(rewardsToken.allowance(address(g), gateway), type(uint256).max);
-        assertEq(g.wards(address(this)), 1);
+        assertEq(p.rewardsToken(), address(rewardsToken));
+        assertEq(p.l2Proxy(), l2Proxy);
+        assertEq(p.feeRecipient(), feeRecipient);
+        assertEq(address(p.l1Gateway()), gateway);
+        assertEq(address(p.inbox()), inbox);
+        assertEq(rewardsToken.allowance(address(p), gateway), type(uint256).max);
+        assertEq(p.wards(address(this)), 1);
     }
 
     function testAuth() public {

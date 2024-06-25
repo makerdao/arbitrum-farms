@@ -22,11 +22,14 @@ interface TokenLike {
 }
 
 contract L1TokenGatewayMock {
+    address public immutable inbox;
     address public immutable escrow;
 
     constructor(
+        address _inbox,
         address _escrow
     ) {
+        inbox = _inbox;
         escrow = _escrow;
     }
 

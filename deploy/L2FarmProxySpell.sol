@@ -16,31 +16,39 @@
 
 pragma solidity >=0.8.0;
 
-import { L2FarmProxy } from "src/L2FarmProxy.sol";
+interface L2FarmProxyLike {
+    function rewardsToken() external view returns (address);
+    function farm() external view returns (address);
+    function rely(address) external;
+    function deny(address) external;
+    function file(bytes32, uint256) external;
+}
 
 interface FarmLike {
     function setRewardsDistribution(address) external;
     function setRewardsDuration(uint256) external;
 }
 
-// A reusable L2 spell to be used by the L2GovernanceRelay to exert admin control over L2FarmProxy
+// A reusable L2 spell to be used by the L2GovernanceRelay to exert admin control over L2 farm proxies
 contract L2FarmProxySpell {
-    L2FarmProxy public immutable l2Proxy;
-    constructor(address l2Proxy_) {
-        l2Proxy = L2FarmProxy(l2Proxy_);
-    }
 
-    function rely(address usr) external { l2Proxy.rely(usr); }
-    function deny(address usr) external { l2Proxy.deny(usr); }
-    function file(bytes32 what, uint256 data) external { l2Proxy.file(what, data); }
+    function rely(address l2Proxy, address usr) external { L2FarmProxyLike(l2Proxy).rely(usr); }
+    function deny(address l2Proxy, address usr) external { L2FarmProxyLike(l2Proxy).deny(usr); }
+    function file(address l2Proxy, bytes32 what, uint256 data) external { L2FarmProxyLike(l2Proxy).file(what, data); }
 
-    function init(uint256 minReward, uint256 rewardsDuration) external {
-        // TODO: add L2-side sanity checks
+    function init(
+        address l2Proxy,
+        address rewardsToken,
+        address farm,
+        uint256 minReward,
+        uint256 rewardsDuration
+    ) external {
+        require(L2FarmProxyLike(l2Proxy).rewardsToken() == rewardsToken, "L2FarmProxySpell/rewards-token-mismatch");
+        require(L2FarmProxyLike(l2Proxy).farm() == farm, "L2FarmProxySpell/farm-mismatch");
 
-        l2Proxy.file("minReward", minReward);
+        L2FarmProxyLike(l2Proxy).file("minReward", minReward);
     
-        FarmLike farm = FarmLike(address(l2Proxy.farm()));
-        farm.setRewardsDistribution(address(l2Proxy));
-        farm.setRewardsDuration(rewardsDuration);
+        FarmLike(farm).setRewardsDistribution(l2Proxy);
+        FarmLike(farm).setRewardsDuration(rewardsDuration);
     }
 }

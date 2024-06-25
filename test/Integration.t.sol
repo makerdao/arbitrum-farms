@@ -36,7 +36,6 @@ import { DssVestMintableMock } from "test/mocks/DssVestMock.sol";
 
 import { FarmProxyDeploy } from "deploy/FarmProxyDeploy.sol";
 import { L2FarmProxySpell } from "deploy/L2FarmProxySpell.sol";
-import { L2FarmProxyInstance } from "deploy/L2FarmProxyInstance.sol";
 import { FarmProxyInit, ProxiesConfig, MessageParams as ProxyMessageParams } from "deploy/FarmProxyInit.sol";
 import { L1FarmProxy } from "src/L1FarmProxy.sol";
 import { L2FarmProxy } from "src/L2FarmProxy.sol";
@@ -56,11 +55,10 @@ contract IntegrationTest is DssTest {
     address ESCROW;
     GemMock l1Token;
     address l1Gateway;
-    address INBOX;
     L1FarmProxy l1Proxy;
     DssVestMintableMock vest;
     uint256 vestId;
-    VestedRewardsDistribution vestedRewardDistribution;
+    VestedRewardsDistribution vestedRewardsDistribution;
 
     // L2-side
     address L2_GOV_RELAY;
@@ -74,8 +72,8 @@ contract IntegrationTest is DssTest {
         vm.label(address(ESCROW), "ESCROW");
 
         l2Domain = new ArbitrumDomain(config, getChain("arbitrum_one"), l1Domain);
-        INBOX = l2Domain.readConfigAddress("inbox");
-        vm.label(INBOX, "INBOX");
+        address inbox = l2Domain.readConfigAddress("inbox");
+        vm.label(inbox, "INBOX");
 
         address l1Gateway_ = vm.computeCreateAddress(address(this), vm.getNonce(address(this)) + 2); // foundry increments a global nonce across domains
         l2Domain.selectFork();
@@ -94,7 +92,7 @@ contract IntegrationTest is DssTest {
             owner:     PAUSE_PROXY,
             l2Gateway: address(l2Gateway), 
             l1Router:  address(0),
-            inbox:     INBOX,
+            inbox:     inbox,
             escrow:    ESCROW
         });
         assertEq(address(l1Gateway), l1Gateway_);
@@ -117,7 +115,7 @@ contract IntegrationTest is DssTest {
         GatewaysConfig memory cfg = GatewaysConfig({
             counterpartGateway: address(l2Gateway),
             l1Router:           address(0),
-            inbox:              INBOX,
+            inbox:              inbox,
             l1Tokens:           l1Tokens,
             l2Tokens:           l2Tokens,
             xchainMsg:          xchainMsg
@@ -159,13 +157,12 @@ contract IntegrationTest is DssTest {
         });
         farm = StakingRewards(StakingRewardsDeploy.deploy(farmParams));
 
-        L2FarmProxyInstance memory l2ProxyInstance = FarmProxyDeploy.deployL2Proxy({
+        l2Proxy = L2FarmProxy(FarmProxyDeploy.deployL2Proxy({
             deployer: address(this),
             owner:    L2_GOV_RELAY,
             farm:     address(farm)
-        });
-        l2Proxy = L2FarmProxy(l2ProxyInstance.proxy);
-        assertEq(address(L2FarmProxySpell(l2ProxyInstance.spell).l2Proxy()), address(l2Proxy));
+        }));
+        address l2Spell = FarmProxyDeploy.deployL2ProxySpell();
 
         l1Domain.selectFork();
         l1Proxy = L1FarmProxy(payable(FarmProxyDeploy.deployL1Proxy({
@@ -174,7 +171,6 @@ contract IntegrationTest is DssTest {
             gem:          address(l1Token), 
             l2Proxy:      address(l2Proxy),
             feeRecipient: L2_GOV_RELAY,
-            inbox:        INBOX,
             l1Gateway:    l1Gateway
         })));
 
@@ -184,7 +180,7 @@ contract IntegrationTest is DssTest {
             vest:      address(vest),
             rewards:   address(l1Proxy)
         });
-        vestedRewardDistribution = VestedRewardsDistribution(VestedRewardsDistributionDeploy.deploy(distributionParams));
+        vestedRewardsDistribution = VestedRewardsDistribution(VestedRewardsDistributionDeploy.deploy(distributionParams));
 
         (bool success,) = address(l1Proxy).call{value: 1 ether}("");
         assertTrue(success);
@@ -194,33 +190,33 @@ contract IntegrationTest is DssTest {
             maxSubmissionCost: 0.01 ether
         });
         ProxiesConfig memory cfg = ProxiesConfig({
-            vest:                     address(vest),
-            vestedRewardDistribution: address(vestedRewardDistribution),
-            vestTot:                  100 * 1e18,
-            vestBgn:                  block.timestamp,
-            vestTau:                  100 days,
-            vestMgr:                  address(0),
-            rewardsToken:             address(l1Token),
-            l2Proxy:                  address(l2Proxy),
-            feeRecipient:             L2_GOV_RELAY,
-            inbox:                    INBOX,
-            l1Gateway:                l1Gateway,
-            maxGas:                   70_000_000, // determined by running deploy/Estimate.s.sol and adding some margin
-            gasPriceBid:              0.1 gwei, // 0.01 gwei arbitrum-one gas price floor * 10x factor
-            l1MinReward:              0,
-            l2MinReward:              1 ether,
-            rewardsDuration:          1 days, 
-            xchainMsg:                xchainMsg,
-            proxyChainlogKey:         "FARM_PROXY_TKA_TKB_ARB",
-            distrChainlogKey:         "REWARDS_DISTRIBUTION_TKA_TKB_ARB"
+            vest:                      address(vest),
+            vestTot:                   100 * 1e18,
+            vestBgn:                   block.timestamp,
+            vestTau:                   100 days,
+            vestMgr:                   address(0),
+            vestedRewardsDistribution: address(vestedRewardsDistribution),
+            l1RewardsToken:            address(l1Token),
+            l2RewardsToken:            address(l2Token),
+            feeRecipient:              L2_GOV_RELAY,
+            l1Gateway:                 l1Gateway,
+            maxGas:                    70_000_000, // determined by running deploy/Estimate.s.sol and adding some margin
+            gasPriceBid:               0.1 gwei, // 0.01 gwei arbitrum-one gas price floor * 10x factor
+            l1MinReward:               0,
+            l2MinReward:               1 ether,
+            farm:                      address(farm),
+            rewardsDuration:           1 days, 
+            xchainMsg:                 xchainMsg,
+            proxyChainlogKey:          "FARM_PROXY_TKA_TKB_ARB",
+            distrChainlogKey:          "REWARDS_DISTRIBUTION_TKA_TKB_ARB"
         });
         vm.startPrank(PAUSE_PROXY);
-        FarmProxyInit.initProxies(dss, address(l1Proxy), l2ProxyInstance, cfg);
+        FarmProxyInit.initProxies(dss, address(l1Proxy), address(l2Proxy), l2Spell, cfg);
         vm.stopPrank();
 
         // test L1 side of initProxies
-        vestId = vestedRewardDistribution.vestId();
-        assertEq(vest.usr(vestId),                                            cfg.vestedRewardDistribution);
+        vestId = vestedRewardsDistribution.vestId();
+        assertEq(vest.usr(vestId),                                            cfg.vestedRewardsDistribution);
         assertEq(vest.tot(vestId),                                            cfg.vestTot);
         assertEq(vest.bgn(vestId),                                            cfg.vestBgn);
         assertEq(vest.fin(vestId),                                            cfg.vestBgn + cfg.vestTau);
@@ -231,7 +227,7 @@ contract IntegrationTest is DssTest {
         assertEq(l1Proxy.gasPriceBid(),                                       cfg.gasPriceBid);
         assertEq(l1Proxy.minReward(),                                         cfg.l1MinReward);
         assertEq(dss.chainlog.getAddress("FARM_PROXY_TKA_TKB_ARB"),           address(l1Proxy));
-        assertEq(dss.chainlog.getAddress("REWARDS_DISTRIBUTION_TKA_TKB_ARB"), cfg.vestedRewardDistribution);
+        assertEq(dss.chainlog.getAddress("REWARDS_DISTRIBUTION_TKA_TKB_ARB"), cfg.vestedRewardsDistribution);
 
         l2Domain.relayFromHost(true);
 
@@ -251,7 +247,7 @@ contract IntegrationTest is DssTest {
         assertGe(amount, minReward);
         assertEq(l1Token.balanceOf(ESCROW), 0);
 
-        vestedRewardDistribution.distribute();
+        vestedRewardsDistribution.distribute();
 
         assertEq(l1Token.balanceOf(ESCROW), amount);
 
