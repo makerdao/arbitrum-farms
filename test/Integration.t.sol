@@ -142,9 +142,9 @@ contract IntegrationTest is DssTest {
         vm.label(address(L2_GOV_RELAY), "L2_GOV_RELAY");
 
         vm.startPrank(PAUSE_PROXY);
-        dss.chainlog.setAddress("NST", address(123)); // TODO: Remove after NST has been setup in a spell
         l1Token = new GemMock(100 ether);
         vest = new DssVestMintableMock(address(l1Token));
+        l1Token.rely(address(vest));
         vest.file("cap", type(uint256).max);
         vm.stopPrank();
 
@@ -218,7 +218,6 @@ contract IntegrationTest is DssTest {
 
         // test L1 side of initProxies
         vestId = vestedRewardDistribution.vestId();
-        assertEq(l1Token.wards(cfg.vest),                           1);
         assertEq(vest.usr(vestId),                                  cfg.vestedRewardDistribution);
         assertEq(vest.tot(vestId),                                  cfg.vestTot);
         assertEq(vest.bgn(vestId),                                  cfg.vestBgn);

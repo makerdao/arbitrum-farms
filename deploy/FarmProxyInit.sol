@@ -20,10 +20,6 @@ import { DssInstance } from "dss-test/MCD.sol";
 import { L2FarmProxyInstance } from "./L2FarmProxyInstance.sol";
 import { L2FarmProxySpell } from "./L2FarmProxySpell.sol";
 
-interface AuthLike {
-    function rely(address usr) external;
-}
-
 interface DssVestLike {
     function gem() external view returns (address);
     function create(address _usr, uint256 _tot, uint256 _bgn, uint256 _tau, uint256 _eta, address _mgr) external returns (uint256 id);
@@ -112,12 +108,6 @@ library FarmProxyInit {
 
         // setup vest
 
-        if (cfg.rewardsToken == dss.chainlog.getAddress("NST")) {
-            // TODO: NST isn't currently planned as an L2 rewardsToken, so do we want to handle this case at all?
-            AuthLike(dss.chainlog.getAddress("MCD_VAT")).rely(cfg.vest);
-        } else {
-            AuthLike(cfg.rewardsToken).rely(cfg.vest);
-        }
         uint256 vestId = vest.create({
             _usr: cfg.vestedRewardDistribution,
             _tot: cfg.vestTot,
