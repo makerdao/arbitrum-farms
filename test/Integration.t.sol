@@ -150,9 +150,10 @@ contract IntegrationTest is DssTest {
 
         l2Domain.selectFork();
 
+        address stakingToken = address(new GemMock(100 ether));
         StakingRewardsDeployParams memory farmParams = StakingRewardsDeployParams({
             owner: L2_GOV_RELAY,
-            stakingToken: address(new GemMock(100 ether)),
+            stakingToken: stakingToken,
             rewardsToken: address(l2Token)
         });
         farm = StakingRewards(StakingRewardsDeploy.deploy(farmParams));
@@ -198,6 +199,7 @@ contract IntegrationTest is DssTest {
             vestedRewardsDistribution: address(vestedRewardsDistribution),
             l1RewardsToken:            address(l1Token),
             l2RewardsToken:            address(l2Token),
+            stakingToken:              stakingToken,
             feeRecipient:              L2_GOV_RELAY,
             l1Gateway:                 l1Gateway,
             maxGas:                    70_000_000, // determined by running deploy/Estimate.s.sol and adding some margin
