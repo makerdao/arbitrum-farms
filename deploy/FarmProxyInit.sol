@@ -58,7 +58,7 @@ struct MessageParams {
 }
 
 struct ProxiesConfig {
-    address vest;
+    address vest;           // DssVest, assumed to have been fully init'ed for l1RewardsToken
     uint256 vestTot;
     uint256 vestBgn;
     uint256 vestTau;

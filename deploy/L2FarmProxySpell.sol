@@ -54,10 +54,12 @@ contract L2FarmProxySpell {
         uint256 minReward,
         uint256 rewardsDuration
     ) external {
+        // sanity checks
         require(L2FarmProxyLike(l2Proxy).rewardsToken() == rewardsToken, "L2FarmProxySpell/rewards-token-mismatch");
         require(L2FarmProxyLike(l2Proxy).farm() == farm, "L2FarmProxySpell/farm-mismatch");
         require(FarmLike(farm).rewardsToken() == rewardsToken, "L2FarmProxySpell/farm-rewards-token-mismatch");
         require(FarmLike(farm).stakingToken() == stakingToken, "L2FarmProxySpell/farm-rewards-token-mismatch");
+        require(stakingToken != rewardsToken, "L2FarmProxySpell/rewards-token-same-as-staking-token");
 
         L2FarmProxyLike(l2Proxy).file("minReward", minReward);
     
