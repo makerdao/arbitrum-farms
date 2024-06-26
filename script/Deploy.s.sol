@@ -131,11 +131,18 @@ contract Deploy is Script {
 
         // Export contract addresses
 
+        ScriptTools.exportContract("deployed", "chainlog", address(chainlog));
         ScriptTools.exportContract("deployed", "farm", farm);
-        ScriptTools.exportContract("deployed", "l2Spell", l2Spell);
+        ScriptTools.exportContract("deployed", "l2ProxySpell", l2Spell);
         ScriptTools.exportContract("deployed", "l2Proxy", l2Proxy);
         ScriptTools.exportContract("deployed", "l1Proxy", l1Proxy);
         ScriptTools.exportContract("deployed", "vest", vest);
         ScriptTools.exportContract("deployed", "vestedRewardsDistribution", vestedRewardsDistribution); // TODO: fix etherscan verification
+        ScriptTools.exportContract("deployed", "l1GovRelay", l1GovRelay);
+        ScriptTools.exportContract("deployed", "l2GovRelay", l2GovRelay);
+        ScriptTools.exportContract("deployed", "l1RewardsToken", l1RewardsToken);
+        ScriptTools.exportContract("deployed", "l2RewardsToken", l2RewardsToken);
+        ScriptTools.exportContract("deployed", "stakingToken", stakingToken);
+        ScriptTools.exportContract("deployed", "l1Gateway", l1Gateway);
     }
 }

@@ -2,13 +2,11 @@
   "domains": {
     "sepolia": {
       "chainlog": "0x066eBcc55Ca699e14F3c3694CdB230a2B8cE3a83",
-      "gateway": "0x95a9f6c87F6BF487875c9C09e70A5c8DC9B41EF4",
       "rewardsToken": "0x0B2eaB37Ab96685Ad2b1A6FdDb8921e156073f84"
     },
     "arbitrum_one_sepolia": {
       "inbox": "0xaAe29B0366299461418F5324a79Afc425BE5ae21",
       "arbSys": "0x0000000000000000000000000000000000000064",
-      "gateway": "0x0CB73f1A5732fbAeFAB5646B422eCF15E12db95B",
       "rewardsToken": "0x76F0DEE2c570401300f85c0Dc451780AD9f0e72c",
       "stakingToken": "0x7E6c1b028E73B912eC3e0D56537DC380A1805813"
     }
