@@ -37,19 +37,21 @@ contract Estimate is Script {
     using stdJson for string;
 
     function run() external {
-        string memory config = ScriptTools.readInput("config"); // loads from FOUNDRY_SCRIPT_CONFIG
-
-        Domain l1Domain = new Domain(config, getChain(string(vm.envOr("L1", string("mainnet")))));
-        Domain l2Domain = new Domain(config, getChain(vm.envOr("L2", string("arbitrum_one"))));
+        StdChains.Chain memory l1Chain = getChain(string(vm.envOr("L1", string("mainnet"))));
+        StdChains.Chain memory l2Chain = getChain(string(vm.envOr("L2", string("arbitrum_one"))));
+        vm.setEnv("FOUNDRY_ROOT_CHAINID", vm.toString(l1Chain.chainId)); // used by ScriptTools to determine config path
+        string memory config = ScriptTools.loadConfig("config");
+        Domain l1Domain = new Domain(config, l1Chain);
+        Domain l2Domain = new Domain(config, l2Chain);
         l1Domain.selectFork();
        
         (, address deployer,) = vm.readCallers();
         address l1Gateway = l1Domain.readConfigAddress("gateway");
-        address l1Nst     = l1Domain.readConfigAddress("nst");
+        address l1Token   = l1Domain.readConfigAddress("rewardsToken");
         address l2Gateway = l2Domain.readConfigAddress("gateway");
 
         bytes memory finalizeDepositCalldata = GatewayLike(l1Gateway).getOutboundCalldata({
-            l1Token: l1Nst, 
+            l1Token: l1Token, 
             from:    deployer,
             to:      address(uint160(uint256(keccak256(abi.encode(deployer, block.timestamp))))), // a pseudo-random address used as "fresh" destination address,
             amount:  uint128(uint256(keccak256(abi.encode(deployer)))), // very large random-looking number => costlier calldata 

@@ -26,12 +26,12 @@ library FarmProxyDeploy {
     function deployL1Proxy(
         address deployer,
         address owner,
-        address gem,
+        address rewardsToken,
         address l2Proxy,
         address feeRecipient,
         address l1Gateway
     ) internal returns (address l1Proxy) {
-        l1Proxy = address(new L1FarmProxy(gem, l2Proxy, feeRecipient, l1Gateway));
+        l1Proxy = address(new L1FarmProxy(rewardsToken, l2Proxy, feeRecipient, l1Gateway));
         ScriptTools.switchOwner(l1Proxy, deployer, owner);
     }
 

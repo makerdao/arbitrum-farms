@@ -72,7 +72,7 @@ contract IntegrationTest is DssTest {
         vm.label(address(ESCROW), "ESCROW");
 
         l2Domain = new ArbitrumDomain(config, getChain("arbitrum_one"), l1Domain);
-        address inbox = l2Domain.readConfigAddress("inbox");
+        address inbox = address(l2Domain.inbox());
         vm.label(inbox, "INBOX");
 
         address l1Gateway_ = vm.computeCreateAddress(address(this), vm.getNonce(address(this)) + 2); // foundry increments a global nonce across domains
@@ -128,7 +128,8 @@ contract IntegrationTest is DssTest {
     }
 
     function setUp() public {
-        config = ScriptTools.readInput("config");
+        vm.setEnv("FOUNDRY_ROOT_CHAINID", "1"); // used by ScriptTools to determine config path
+        config = ScriptTools.loadConfig("config");
 
         l1Domain = new Domain(config, getChain("mainnet"));
         l1Domain.selectFork();

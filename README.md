@@ -1,1 +1,3 @@
-# Endgame L2 Farms
+TODO: Rename repo to arbitrum-farms
+
+# Arbitrum Farms
