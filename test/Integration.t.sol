@@ -26,7 +26,6 @@ import { TokenGatewayDeploy } from "lib/arbitrum-token-bridge/deploy/TokenGatewa
 import { L2TokenGatewaySpell } from "lib/arbitrum-token-bridge/deploy/L2TokenGatewaySpell.sol";
 import { L2TokenGatewayInstance } from "lib/arbitrum-token-bridge/deploy/L2TokenGatewayInstance.sol";
 import { TokenGatewayInit, GatewaysConfig, MessageParams as GatewayMessageParams } from "lib/arbitrum-token-bridge/deploy/TokenGatewayInit.sol";
-import { AddressAliasHelper } from "lib/arbitrum-token-bridge/src/arbitrum/AddressAliasHelper.sol";
 
 import { StakingRewards, StakingRewardsDeploy, StakingRewardsDeployParams } from "lib/endgame-toolkit/script/dependencies/StakingRewardsDeploy.sol";
 import { VestedRewardsDistributionDeploy, VestedRewardsDistributionDeployParams } from "lib/endgame-toolkit/script/dependencies/VestedRewardsDistributionDeploy.sol";
@@ -172,13 +171,12 @@ contract IntegrationTest is DssTest {
         address l2Spell = FarmProxyDeploy.deployL2ProxySpell();
 
         l1Domain.selectFork();
-        address feeRecipient = AddressAliasHelper.undoL1ToL2Alias(L2_GOV_RELAY); // the address of L2_GOV_RELAY has code on L1 as well and so will be aliased, which we want to cancel out
         l1Proxy = L1FarmProxy(payable(FarmProxyDeploy.deployL1Proxy({
             deployer:     address(this),
             owner:        PAUSE_PROXY,
+            chainlog:     address(dss.chainlog),
             rewardsToken: address(l1Token), 
             l2Proxy:      address(l2Proxy),
-            feeRecipient: feeRecipient,
             l1Gateway:    l1Gateway
         })));
 
@@ -207,7 +205,6 @@ contract IntegrationTest is DssTest {
             l1RewardsToken:            address(l1Token),
             l2RewardsToken:            address(l2Token),
             stakingToken:              stakingToken,
-            feeRecipient:              feeRecipient,
             l1Gateway:                 l1Gateway,
             maxGas:                    70_000_000, // determined by running deploy/Estimate.s.sol and adding some margin
             gasPriceBid:               0.1 gwei, // 0.01 gwei arbitrum-one gas price floor * 10x factor

@@ -25,7 +25,6 @@ import { MCD, DssInstance } from "dss-test/MCD.sol";
 import { FarmProxyInit, ProxiesConfig, MessageParams } from "deploy/FarmProxyInit.sol";
 import { L2FarmProxySpell } from "deploy/L2FarmProxySpell.sol";
 import { RetryableTickets } from "arbitrum-token-bridge/script/utils/RetryableTickets.sol";
-import { AddressAliasHelper } from "arbitrum-token-bridge/src/arbitrum/AddressAliasHelper.sol";
 
 interface L2GovernanceRelayLike {
     function relay(address, bytes calldata) external;
@@ -61,7 +60,6 @@ contract Init is Script {
         l2GovRelay = deps.readAddress(".l2GovRelay");
         RetryableTickets retryable = new RetryableTickets(l1Domain, l2Domain, l1GovRelay, l2GovRelay);
 
-        address feeRecipient = (l2GovRelay.code.length > 0) ? AddressAliasHelper.undoL1ToL2Alias(l2GovRelay) : l2GovRelay; // if the address of l2GovRelay has code on L1, it will be aliased, which we want to cancel out
         address l2Proxy = deps.readAddress(".l2Proxy");
         address l2ProxySpell = deps.readAddress(".l2ProxySpell");
         address l2RewardsToken = deps.readAddress(".l2RewardsToken");
@@ -96,7 +94,6 @@ contract Init is Script {
             l1RewardsToken:            deps.readAddress(".l1RewardsToken"),
             l2RewardsToken:            l2RewardsToken,
             stakingToken:              stakingToken,
-            feeRecipient:              feeRecipient,
             l1Gateway:                 deps.readAddress(".l1Gateway"),
             maxGas:                    70_000_000, // determined by running deploy/Estimate.s.sol and adding some margin
             gasPriceBid:               0.1 gwei, // 0.01 gwei arbitrum-one gas price floor * 10x factor

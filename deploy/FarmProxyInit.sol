@@ -18,6 +18,7 @@ pragma solidity >=0.8.0;
 
 import { DssInstance } from "dss-test/MCD.sol";
 import { L2FarmProxySpell } from "./L2FarmProxySpell.sol";
+import { AddressAliasHelper } from "./utils/AddressAliasHelper.sol";
 
 interface DssVestLike {
     function gem() external view returns (address);
@@ -41,6 +42,7 @@ interface L1FarmProxyLike {
 }
 
 interface L1RelayLike {
+    function l2GovernanceRelay() external view returns (address);
     function relay(
         address target,
         bytes calldata targetData,
@@ -67,7 +69,6 @@ struct ProxiesConfig {
     address l1RewardsToken;
     address l2RewardsToken;
     address stakingToken;
-    address feeRecipient;
     address l1Gateway;
     uint256 maxGas;          // For the L1 proxy
     uint256 gasPriceBid;     // For the L1 proxy
@@ -91,8 +92,14 @@ library FarmProxyInit {
         L1FarmProxyLike l1Proxy = L1FarmProxyLike(l1Proxy_);
         DssVestLike vest = DssVestLike(cfg.vest);
         VestedRewardsDistributionLike distribution = VestedRewardsDistributionLike(cfg.vestedRewardsDistribution);
+        L1RelayLike l1GovRelay = L1RelayLike(dss.chainlog.getAddress("ARBITRUM_GOV_RELAY"));
 
         // sanity checks
+
+        {
+        // if the address of l2GovRelay has code on L1, it will be aliased, which we want to cancel out
+        address l2GovRelay = l1GovRelay.l2GovernanceRelay();
+        address feeRecipient = (l2GovRelay.code.length > 0) ? AddressAliasHelper.undoL1ToL2Alias(l2GovRelay) : l2GovRelay;
 
         require(vest.gem()                    == cfg.l1RewardsToken,                   "FarmProxyInit/vest-gem-mismatch");
         require(distribution.gem()            == cfg.l1RewardsToken,                   "FarmProxyInit/distribution-gem-mismatch");
@@ -100,12 +107,13 @@ library FarmProxyInit {
         require(distribution.dssVest()        == cfg.vest,                             "FarmProxyInit/distribution-vest-mismatch");
         require(l1Proxy.rewardsToken()        == cfg.l1RewardsToken,                   "FarmProxyInit/rewards-token-mismatch");
         require(l1Proxy.l2Proxy()             == l2Proxy,                              "FarmProxyInit/l2-proxy-mismatch");
-        require(l1Proxy.feeRecipient()        == cfg.feeRecipient,                     "FarmProxyInit/fee-recipient-mismatch");
+        require(l1Proxy.feeRecipient()        == feeRecipient,                     "FarmProxyInit/fee-recipient-mismatch");
         require(l1Proxy.l1Gateway()           == cfg.l1Gateway,                        "FarmProxyInit/l1-gateway-mismatch");
         require(cfg.maxGas                    <= 10_000_000_000,                       "FarmProxyInit/max-gas-out-of-bounds");
         require(cfg.gasPriceBid               <= 10_000 gwei,                          "FarmProxyInit/gas-price-bid-out-of-bounds");
         require(cfg.l1MinReward               <= type(uint128).max,                    "FarmProxyInit/l1-min-reward-out-of-bounds");
         require(cfg.l2MinReward               > 0,                                     "FarmProxyInit/l2-min-reward-out-of-bounds");
+        }
 
         // setup vest
 
@@ -128,7 +136,6 @@ library FarmProxyInit {
 
         // setup L2 proxy
 
-        L1RelayLike l1GovRelay = L1RelayLike(dss.chainlog.getAddress("ARBITRUM_GOV_RELAY"));
         uint256 l1CallValue = cfg.xchainMsg.maxSubmissionCost + cfg.xchainMsg.maxGas * cfg.xchainMsg.gasPriceBid;
 
         // not strictly necessary (as the retryable ticket creation would otherwise fail) 

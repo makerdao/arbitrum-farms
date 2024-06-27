@@ -22,7 +22,6 @@ import "forge-std/Script.sol";
 import { ScriptTools } from "dss-test/ScriptTools.sol";
 import { Domain } from "dss-test/domains/Domain.sol";
 
-import { AddressAliasHelper } from "lib/arbitrum-token-bridge/src/arbitrum/AddressAliasHelper.sol";
 import { StakingRewardsDeploy, StakingRewardsDeployParams } from "lib/endgame-toolkit/script/dependencies/StakingRewardsDeploy.sol";
 import { VestedRewardsDistributionDeploy, VestedRewardsDistributionDeployParams } from "lib/endgame-toolkit/script/dependencies/VestedRewardsDistributionDeploy.sol";
 import { DssVestMintableMock } from "test/mocks/DssVestMock.sol";
@@ -113,13 +112,12 @@ contract Deploy is Script {
         l1Domain.selectFork();
 
         vm.startBroadcast();
-        address feeRecipient = (l2GovRelay.code.length > 0) ? AddressAliasHelper.undoL1ToL2Alias(l2GovRelay) : l2GovRelay; // if the address of l2GovRelay has code on L1, it will be aliased, which we want to cancel out
         l1Proxy = FarmProxyDeploy.deployL1Proxy(
             deployer,
             owner,
+            address(chainlog),
             l1RewardsToken,
             l2Proxy,
-            feeRecipient,
             l1Gateway
         );
         VestedRewardsDistributionDeployParams memory distributionParams = VestedRewardsDistributionDeployParams({
