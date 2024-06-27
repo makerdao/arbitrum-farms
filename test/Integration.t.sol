@@ -26,6 +26,7 @@ import { TokenGatewayDeploy } from "lib/arbitrum-token-bridge/deploy/TokenGatewa
 import { L2TokenGatewaySpell } from "lib/arbitrum-token-bridge/deploy/L2TokenGatewaySpell.sol";
 import { L2TokenGatewayInstance } from "lib/arbitrum-token-bridge/deploy/L2TokenGatewayInstance.sol";
 import { TokenGatewayInit, GatewaysConfig, MessageParams as GatewayMessageParams } from "lib/arbitrum-token-bridge/deploy/TokenGatewayInit.sol";
+import { AddressAliasHelper } from "lib/arbitrum-token-bridge/src/arbitrum/AddressAliasHelper.sol";
 
 import { StakingRewards, StakingRewardsDeploy, StakingRewardsDeployParams } from "lib/endgame-toolkit/script/dependencies/StakingRewardsDeploy.sol";
 import { VestedRewardsDistributionDeploy, VestedRewardsDistributionDeployParams } from "lib/endgame-toolkit/script/dependencies/VestedRewardsDistributionDeploy.sol";
@@ -44,6 +45,10 @@ interface L1RelayLike {
     function l2GovernanceRelay() external view returns (address);
 }
 
+contract L1RouterMock {
+    function counterpartGateway() external view returns (address) {}
+}
+
 contract IntegrationTest is DssTest {
     string config;
     Domain l1Domain;
@@ -53,6 +58,7 @@ contract IntegrationTest is DssTest {
     DssInstance dss;
     address PAUSE_PROXY;
     address ESCROW;
+    address L1_ROUTER;
     GemMock l1Token;
     address l1Gateway;
     L1FarmProxy l1Proxy;
@@ -91,7 +97,7 @@ contract IntegrationTest is DssTest {
             deployer:  address(this),
             owner:     PAUSE_PROXY,
             l2Gateway: address(l2Gateway), 
-            l1Router:  address(0),
+            l1Router:  L1_ROUTER,
             inbox:     inbox,
             escrow:    ESCROW
         });
@@ -114,7 +120,7 @@ contract IntegrationTest is DssTest {
         });
         GatewaysConfig memory cfg = GatewaysConfig({
             counterpartGateway: address(l2Gateway),
-            l1Router:           address(0),
+            l1Router:           L1_ROUTER,
             inbox:              inbox,
             l1Tokens:           l1Tokens,
             l2Tokens:           l2Tokens,
@@ -137,8 +143,7 @@ contract IntegrationTest is DssTest {
         dss = l1Domain.dss();
         PAUSE_PROXY  = dss.chainlog.getAddress("MCD_PAUSE_PROXY");
         L2_GOV_RELAY = L1RelayLike(dss.chainlog.getAddress("ARBITRUM_GOV_RELAY")).l2GovernanceRelay();
-        vm.label(address(PAUSE_PROXY),  "PAUSE_PROXY");
-        vm.label(address(L2_GOV_RELAY), "L2_GOV_RELAY");
+        L1_ROUTER = address(new L1RouterMock());
 
         vm.startPrank(PAUSE_PROXY);
         l1Token = new GemMock(100 ether);
@@ -167,12 +172,13 @@ contract IntegrationTest is DssTest {
         address l2Spell = FarmProxyDeploy.deployL2ProxySpell();
 
         l1Domain.selectFork();
+        address feeRecipient = AddressAliasHelper.undoL1ToL2Alias(L2_GOV_RELAY); // the address of L2_GOV_RELAY has code on L1 as well and so will be aliased, which we want to cancel out
         l1Proxy = L1FarmProxy(payable(FarmProxyDeploy.deployL1Proxy({
             deployer:     address(this),
             owner:        PAUSE_PROXY,
-            gem:          address(l1Token), 
+            rewardsToken: address(l1Token), 
             l2Proxy:      address(l2Proxy),
-            feeRecipient: L2_GOV_RELAY,
+            feeRecipient: feeRecipient,
             l1Gateway:    l1Gateway
         })));
 
@@ -201,7 +207,7 @@ contract IntegrationTest is DssTest {
             l1RewardsToken:            address(l1Token),
             l2RewardsToken:            address(l2Token),
             stakingToken:              stakingToken,
-            feeRecipient:              L2_GOV_RELAY,
+            feeRecipient:              feeRecipient,
             l1Gateway:                 l1Gateway,
             maxGas:                    70_000_000, // determined by running deploy/Estimate.s.sol and adding some margin
             gasPriceBid:               0.1 gwei, // 0.01 gwei arbitrum-one gas price floor * 10x factor

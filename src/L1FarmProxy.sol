@@ -46,7 +46,7 @@ contract L1FarmProxy {
 
     address public immutable rewardsToken;
     address public immutable l2Proxy;
-    address public immutable feeRecipient;
+    address public immutable feeRecipient; // L2 recipient of excess fee. Negative alias must be applied to it if the address contains code on L1
     InboxLike public immutable inbox;
     L1TokenGatewayLike public immutable l1Gateway;
 
