@@ -174,7 +174,7 @@ contract IntegrationTest is DssTest {
         l1Proxy = L1FarmProxy(payable(FarmProxyDeploy.deployL1Proxy({
             deployer:     address(this),
             owner:        PAUSE_PROXY,
-            chainlog:     address(dss.chainlog),
+            feeRecipient: L2_GOV_RELAY,
             rewardsToken: address(l1Token), 
             l2Proxy:      address(l2Proxy),
             l1Gateway:    l1Gateway

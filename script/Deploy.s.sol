@@ -115,7 +115,7 @@ contract Deploy is Script {
         l1Proxy = FarmProxyDeploy.deployL1Proxy(
             deployer,
             owner,
-            address(chainlog),
+            l2GovRelay,
             l1RewardsToken,
             l2Proxy,
             l1Gateway

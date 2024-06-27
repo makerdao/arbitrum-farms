@@ -21,29 +21,20 @@ import { ScriptTools } from "dss-test/ScriptTools.sol";
 import { L2FarmProxySpell } from "./L2FarmProxySpell.sol";
 import { L1FarmProxy } from "src/L1FarmProxy.sol";
 import { L2FarmProxy } from "src/L2FarmProxy.sol";
-import { AddressAliasHelper } from "./utils/AddressAliasHelper.sol";
 
 interface ChainlogLike {
     function getAddress(bytes32) external view returns (address);
-}
-
-interface L1RelayLike {
-    function l2GovernanceRelay() external view returns (address);
 }
 
 library FarmProxyDeploy {
     function deployL1Proxy(
         address deployer,
         address owner,
-        address chainlog,
+        address feeRecipient,
         address rewardsToken,
         address l2Proxy,
         address l1Gateway
     ) internal returns (address l1Proxy) {
-        // if the address of l2GovRelay has code on L1, it will be aliased, which we want to cancel out
-        address l2GovRelay = L1RelayLike(ChainlogLike(chainlog).getAddress("ARBITRUM_GOV_RELAY")).l2GovernanceRelay();
-        address feeRecipient = (l2GovRelay.code.length > 0) ? AddressAliasHelper.undoL1ToL2Alias(l2GovRelay) : l2GovRelay;
-
         l1Proxy = address(new L1FarmProxy(rewardsToken, l2Proxy, feeRecipient, l1Gateway));
         ScriptTools.switchOwner(l1Proxy, deployer, owner);
     }

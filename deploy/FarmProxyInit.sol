@@ -18,7 +18,6 @@ pragma solidity >=0.8.0;
 
 import { DssInstance } from "dss-test/MCD.sol";
 import { L2FarmProxySpell } from "./L2FarmProxySpell.sol";
-import { AddressAliasHelper } from "./utils/AddressAliasHelper.sol";
 
 interface DssVestLike {
     function gem() external view returns (address);
@@ -96,24 +95,18 @@ library FarmProxyInit {
 
         // sanity checks
 
-        {
-        // if the address of l2GovRelay has code on L1, it will be aliased, which we want to cancel out
-        address l2GovRelay = l1GovRelay.l2GovernanceRelay();
-        address feeRecipient = (l2GovRelay.code.length > 0) ? AddressAliasHelper.undoL1ToL2Alias(l2GovRelay) : l2GovRelay;
-
         require(vest.gem()                    == cfg.l1RewardsToken,                   "FarmProxyInit/vest-gem-mismatch");
         require(distribution.gem()            == cfg.l1RewardsToken,                   "FarmProxyInit/distribution-gem-mismatch");
         require(distribution.stakingRewards() == l1Proxy_,                             "FarmProxyInit/distribution-farm-mismatch");
         require(distribution.dssVest()        == cfg.vest,                             "FarmProxyInit/distribution-vest-mismatch");
         require(l1Proxy.rewardsToken()        == cfg.l1RewardsToken,                   "FarmProxyInit/rewards-token-mismatch");
         require(l1Proxy.l2Proxy()             == l2Proxy,                              "FarmProxyInit/l2-proxy-mismatch");
-        require(l1Proxy.feeRecipient()        == feeRecipient,                     "FarmProxyInit/fee-recipient-mismatch");
+        require(l1Proxy.feeRecipient()        == l1GovRelay.l2GovernanceRelay(),       "FarmProxyInit/fee-recipient-mismatch");
         require(l1Proxy.l1Gateway()           == cfg.l1Gateway,                        "FarmProxyInit/l1-gateway-mismatch");
         require(cfg.maxGas                    <= 10_000_000_000,                       "FarmProxyInit/max-gas-out-of-bounds");
         require(cfg.gasPriceBid               <= 10_000 gwei,                          "FarmProxyInit/gas-price-bid-out-of-bounds");
         require(cfg.l1MinReward               <= type(uint128).max,                    "FarmProxyInit/l1-min-reward-out-of-bounds");
         require(cfg.l2MinReward               > 0,                                     "FarmProxyInit/l2-min-reward-out-of-bounds");
-        }
 
         // setup vest
 
