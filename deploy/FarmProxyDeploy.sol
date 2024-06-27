@@ -22,17 +22,13 @@ import { L2FarmProxySpell } from "./L2FarmProxySpell.sol";
 import { L1FarmProxy } from "src/L1FarmProxy.sol";
 import { L2FarmProxy } from "src/L2FarmProxy.sol";
 
-interface ChainlogLike {
-    function getAddress(bytes32) external view returns (address);
-}
-
 library FarmProxyDeploy {
     function deployL1Proxy(
         address deployer,
         address owner,
-        address feeRecipient,
         address rewardsToken,
         address l2Proxy,
+        address feeRecipient,
         address l1Gateway
     ) internal returns (address l1Proxy) {
         l1Proxy = address(new L1FarmProxy(rewardsToken, l2Proxy, feeRecipient, l1Gateway));

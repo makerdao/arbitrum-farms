@@ -115,9 +115,9 @@ contract Deploy is Script {
         l1Proxy = FarmProxyDeploy.deployL1Proxy(
             deployer,
             owner,
-            l2GovRelay,
             l1RewardsToken,
             l2Proxy,
+            l2GovRelay,
             l1Gateway
         );
         VestedRewardsDistributionDeployParams memory distributionParams = VestedRewardsDistributionDeployParams({

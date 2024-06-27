@@ -45,3 +45,17 @@ On mainnet, the farm proxies should be initialized via the spell process. On tes
 ```
 forge script script/Init.s.sol:Init --sender $DEPLOYER --private-key $PRIVATE_KEY --slow --multi --broadcast
 ```
+
+### Run a test distribution
+
+Run the following command to distribute the vested funds to the L1 proxy:
+
+```
+forge script script/Distribute.s.sol:Distribute --sender $DEPLOYER --private-key $PRIVATE_KEY --slow --multi --broadcast
+```
+
+Wait for the transaction to be relayed to L2, then run the following command to forward the bridged funds from the L2 proxy to the farm:
+
+```
+forge script script/Forward.s.sol:Forward --sender $DEPLOYER --private-key $PRIVATE_KEY --slow --multi --broadcast
+```
