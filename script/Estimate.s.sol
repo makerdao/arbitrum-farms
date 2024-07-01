@@ -30,15 +30,24 @@ interface GatewayLike {
         uint256 amount,
         bytes memory data
     ) external pure returns (bytes memory);
+    function counterpartGateway() external view returns (address);
+}
+
+interface ChainLogLike {
+    function getAddress(bytes32) external view returns (address);
 }
 
 // Estimate `maxGas` for L1FarmProxy
 contract Estimate is Script {
     using stdJson for string;
 
+    uint256 constant MAX_L1_BASE_FEE_ESTIMATE = 1 gwei; // worst-case estimate for l1BaseFeeEstimate (representing the blob base fee) returned from https://github.com/OffchainLabs/nitro-contracts/blob/90037b996509312ef1addb3f9352457b8a99d6a6/src/node-interface/NodeInterface.sol#L95
+    bool    constant USE_DAI_BRIDGE = true;             // set to true if the new token gateway isn't yet initiated
+
     function run() external {
-        StdChains.Chain memory l1Chain = getChain(string(vm.envOr("L1", string("mainnet"))));
-        StdChains.Chain memory l2Chain = getChain(string(vm.envOr("L2", string("arbitrum_one"))));
+        // Note: this script should not be run on testnet as l1BaseFeeEstimate can sometimes be 0 on sepolia
+        StdChains.Chain memory l1Chain = getChain(string("mainnet"));
+        StdChains.Chain memory l2Chain = getChain(string("arbitrum_one"));
         vm.setEnv("FOUNDRY_ROOT_CHAINID", vm.toString(l1Chain.chainId)); // used by ScriptTools to determine config path
         string memory config = ScriptTools.loadConfig("config");
         Domain l1Domain = new Domain(config, l1Chain);
@@ -46,9 +55,17 @@ contract Estimate is Script {
         l1Domain.selectFork();
        
         (, address deployer,) = vm.readCallers();
-        address l1Gateway = l1Domain.readConfigAddress("gateway");
-        address l1Token   = l1Domain.readConfigAddress("rewardsToken");
-        address l2Gateway = l2Domain.readConfigAddress("gateway");
+        ChainLogLike chainlog = ChainLogLike(l1Domain.readConfigAddress("chainlog"));
+        address l1Gateway;
+        address l1Token;
+        if (USE_DAI_BRIDGE) {
+            l1Gateway = chainlog.getAddress("ARBITRUM_DAI_BRIDGE");
+            l1Token = chainlog.getAddress("MCD_DAI");
+        } else {
+            l1Gateway = chainlog.getAddress("ARBITRUM_TOKEN_BRIDGE");
+            l1Token = l1Domain.readConfigAddress("rewardsToken");
+        }
+        address l2Gateway = GatewayLike(l1Gateway).counterpartGateway();
 
         bytes memory finalizeDepositCalldata = GatewayLike(l1Gateway).getOutboundCalldata({
             l1Token: l1Token, 
@@ -76,22 +93,16 @@ contract Estimate is Script {
             "\"}]"
         )));
 
-        (uint64 gasEstimate, uint64 gasEstimateForL1, uint256 l2BaseFee, uint256 l1BaseFeeEstimate) 
+        (uint64 gasEstimate, uint64 gasEstimateForL1,, uint256 l1BaseFeeEstimate) 
             = abi.decode(res, (uint64,uint64,uint256,uint256));
 
+        uint256 l2ExecutionGas = gasEstimate - gasEstimateForL1;
+        uint256 maxExtraGasForDataPosting = gasEstimateForL1 * MAX_L1_BASE_FEE_ESTIMATE / l1BaseFeeEstimate;
+        uint256 maxGas = l2ExecutionGas + maxExtraGasForDataPosting; 
 
-        uint256 l2g = gasEstimate - gasEstimateForL1;
-        uint256 l1p = 16 * l1BaseFeeEstimate;
-        uint256 l1s = gasEstimateForL1 * l2BaseFee / l1p;
-
-        // maxGas is estimated based on the formula in https://docs.arbitrum.io/build-decentralized-apps/how-to-estimate-gas#breaking-down-the-formula
-        // where we use:
-        // * (L1P)_max = 16 * 100 gwei
-        // * (P)_min = 0.01 gwei
-        uint256 maxGas = l2g + (16 * 100 gwei * l1s) / 0.01 gwei; 
-
-        console2.log("L2G:", l2g);
-        console2.log("L1S:", l1s);
-        console2.log("Recommended maxGas:", maxGas);
+        console2.log("    L2 Execution Gas:", l2ExecutionGas);
+        console2.log("Cur Data Posting Gas:", gasEstimateForL1);
+        console2.log("Max Data Posting Gas:", maxExtraGasForDataPosting);
+        console2.log("  Recommended maxGas:", maxGas);
     }
 }

@@ -40,7 +40,13 @@ forge script script/Deploy.s.sol:Deploy --sender $DEPLOYER --private-key $PRIVAT
 
 ### Initialize the farm L1 & L2 proxies
 
-On mainnet, the farm proxies should be initialized via the spell process. On testnet, the proxies initialization can be performed via the following command:
+On mainnet, the farm proxies should be initialized via the spell process. To determine an adequate value for the `maxGas` storage variable of `L1FarmProxy`, the `Estimate` script can be run:
+
+```
+forge script script/Estimate.s.sol:Estimate --sender $DEPLOYER --private-key $PRIVATE_KEY
+```
+
+On testnet, the proxies initialization can be performed via the following command:
 
 ```
 forge script script/Init.s.sol:Init --sender $DEPLOYER --private-key $PRIVATE_KEY --slow --multi --broadcast
