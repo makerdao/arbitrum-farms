@@ -29,7 +29,7 @@ interface GemLike {
 
 contract L2FarmProxy {
     mapping (address => uint256) public wards;
-    uint256 public minReward;
+    uint256 public rewardThreshold;
 
     GemLike  public immutable rewardsToken;
     FarmLike public immutable farm;
@@ -55,7 +55,7 @@ contract L2FarmProxy {
     function deny(address usr) external auth { wards[usr] = 0; emit Deny(usr); }
 
     function file(bytes32 what, uint256 data) external auth {
-        if   (what == "minReward") minReward = data;
+        if   (what == "rewardThreshold") rewardThreshold = data;
         else revert("L2FarmProxy/file-unrecognized-param");
         emit File(what, data);
     }
@@ -64,7 +64,7 @@ contract L2FarmProxy {
     // calling this function too frequently in an attempt to reduce the rewardRate of the farm
     function forwardReward() external {
         uint256 reward = rewardsToken.balanceOf(address(this));
-        require(reward >= minReward, "L2FarmProxy/reward-too-small");
+        require(reward > rewardThreshold, "L2FarmProxy/reward-too-small");
         rewardsToken.transfer(address(farm), reward);
         farm.notifyRewardAmount(reward);
     }

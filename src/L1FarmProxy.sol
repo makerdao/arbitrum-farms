@@ -57,7 +57,7 @@ contract L1FarmProxy {
     mapping (address => uint256) public wards;
     uint64  public maxGas;
     uint64  public gasPriceBid;
-    uint128 public minReward;
+    uint128 public rewardThreshold;
 
     address public immutable rewardsToken;
     address public immutable l2Proxy;
@@ -93,9 +93,9 @@ contract L1FarmProxy {
     // @notice Validation of the `data` boundaries is outside the scope of this 
     // contract and is assumed to be carried out in the corresponding spell process
     function file(bytes32 what, uint256 data) external auth {
-        if      (what == "maxGas")      maxGas      =  uint64(data);
-        else if (what == "gasPriceBid") gasPriceBid =  uint64(data);
-        else if (what == "minReward")   minReward   = uint128(data);
+        if      (what == "maxGas")          maxGas          =  uint64(data);
+        else if (what == "gasPriceBid")     gasPriceBid     =  uint64(data);
+        else if (what == "rewardThreshold") rewardThreshold = uint128(data);
         else revert("L1FarmProxy/file-unrecognized-param");
         emit File(what, data);
     }
@@ -129,9 +129,9 @@ contract L1FarmProxy {
     // This is mitigated by incorporating large enough safety factors in maxGas and gasPriceBid.
     // Note that in any case a failed auto-redeem can be permissionlessly retried for 7 days
     function notifyRewardAmount(uint256 reward) external {
-        (uint256 maxGas_, uint256 gasPriceBid_, uint256 minReward_) = (maxGas, gasPriceBid, minReward);
+        (uint256 maxGas_, uint256 gasPriceBid_, uint256 rewardThreshold_) = (maxGas, gasPriceBid, rewardThreshold);
 
-        require(reward > 0 && reward >= minReward_, "L1FarmProxy/reward-too-small");
+        require(reward > rewardThreshold_, "L1FarmProxy/reward-too-small");
 
         (uint256 l1CallValue, uint256 maxSubmissionCost) = estimateDepositCost(0, maxGas_, gasPriceBid_);
 

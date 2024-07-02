@@ -51,24 +51,25 @@ contract L2FarmProxyTest is DssTest {
     }
 
     function testFile() public {
-        checkFileUint(address(l2Proxy), "L2FarmProxy", ["minReward"]);
+        checkFileUint(address(l2Proxy), "L2FarmProxy", ["rewardThreshold"]);
     }
 
     function testForwardReward() public {
-        l2Proxy.file("minReward", 1000 ether);
+        l2Proxy.file("rewardThreshold", 100 ether);
+        rewardsToken.transfer(address(l2Proxy), 100 ether);
 
         vm.expectRevert("L2FarmProxy/reward-too-small");
         l2Proxy.forwardReward();
 
-        rewardsToken.transfer(address(l2Proxy), 10_000 ether);
+        rewardsToken.transfer(address(l2Proxy), 1 ether);
         assertEq(rewardsToken.balanceOf(farm), 0);
-        assertEq(rewardsToken.balanceOf(address(l2Proxy)), 10_000 ether);
+        assertEq(rewardsToken.balanceOf(address(l2Proxy)), 101 ether);
 
         vm.expectEmit(true, true, true, true);
-        emit RewardAdded(10_000 ether);
+        emit RewardAdded(101 ether);
         l2Proxy.forwardReward();
 
-        assertEq(rewardsToken.balanceOf(farm), 10_000 ether);
+        assertEq(rewardsToken.balanceOf(farm), 101 ether);
         assertEq(rewardsToken.balanceOf(address(l2Proxy)), 0);
     }
 }

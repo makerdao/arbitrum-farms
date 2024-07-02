@@ -137,7 +137,7 @@ contract Deploy is Script {
         ScriptTools.exportContract("deployed", "l2Proxy", l2Proxy);
         ScriptTools.exportContract("deployed", "l1Proxy", l1Proxy);
         ScriptTools.exportContract("deployed", "vest", vest);
-        ScriptTools.exportContract("deployed", "vestedRewardsDistribution", vestedRewardsDistribution); // TODO: fix etherscan verification
+        ScriptTools.exportContract("deployed", "vestedRewardsDistribution", vestedRewardsDistribution);
         ScriptTools.exportContract("deployed", "l1GovRelay", l1GovRelay);
         ScriptTools.exportContract("deployed", "l2GovRelay", l2GovRelay);
         ScriptTools.exportContract("deployed", "l1RewardsToken", l1RewardsToken);

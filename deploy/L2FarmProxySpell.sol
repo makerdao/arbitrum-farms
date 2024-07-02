@@ -51,7 +51,7 @@ contract L2FarmProxySpell {
         address rewardsToken,
         address stakingToken,
         address farm,
-        uint256 minReward,
+        uint256 rewardThreshold,
         uint256 rewardsDuration
     ) external {
         // sanity checks
@@ -61,7 +61,7 @@ contract L2FarmProxySpell {
         require(FarmLike(farm).stakingToken() == stakingToken, "L2FarmProxySpell/farm-rewards-token-mismatch");
         require(stakingToken != rewardsToken, "L2FarmProxySpell/rewards-token-same-as-staking-token");
 
-        L2FarmProxyLike(l2Proxy).file("minReward", minReward);
+        L2FarmProxyLike(l2Proxy).file("rewardThreshold", rewardThreshold);
     
         FarmLike(farm).setRewardsDistribution(l2Proxy);
         FarmLike(farm).setRewardsDuration(rewardsDuration);

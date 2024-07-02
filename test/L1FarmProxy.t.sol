@@ -60,7 +60,7 @@ contract L1FarmProxyTest is DssTest {
     }
 
     function testFile() public {
-        checkFileUint(address(l1Proxy), "L1FarmProxy", ["maxGas", "gasPriceBid", "minReward"]);
+        checkFileUint(address(l1Proxy), "L1FarmProxy", ["maxGas", "gasPriceBid", "rewardThreshold"]);
     }
 
     function testAuthModifiers() public virtual {
@@ -88,25 +88,22 @@ contract L1FarmProxyTest is DssTest {
     }
 
     function testNotifyRewardAmount() public {
-        vm.expectRevert("L1FarmProxy/reward-too-small");
-        l1Proxy.notifyRewardAmount(0);
-
-        l1Proxy.file("minReward", 1000 ether);
+        l1Proxy.file("rewardThreshold", 100 ether);
 
         vm.expectRevert("L1FarmProxy/reward-too-small");
-        l1Proxy.notifyRewardAmount(500 ether);
+        l1Proxy.notifyRewardAmount(100 ether);
 
         (bool success,) = address(l1Proxy).call{value: 1 ether}("");
         assertTrue(success);
-        rewardsToken.transfer(address(l1Proxy), 1000 ether);
+        rewardsToken.transfer(address(l1Proxy), 101 ether);
         assertEq(rewardsToken.balanceOf(escrow), 0);
-        assertEq(rewardsToken.balanceOf(address(l1Proxy)), 1000 ether);
+        assertEq(rewardsToken.balanceOf(address(l1Proxy)), 101 ether);
         uint256 ethBefore = address(l1Proxy).balance;
         (uint256 l1CallValue,) = l1Proxy.estimateDepositCost(0, 0, 0);
 
-        l1Proxy.notifyRewardAmount(1000 ether);
+        l1Proxy.notifyRewardAmount(101 ether);
 
-        assertEq(rewardsToken.balanceOf(escrow), 1000 ether);
+        assertEq(rewardsToken.balanceOf(escrow), 101 ether);
         assertEq(rewardsToken.balanceOf(address(l1Proxy)), 0);
         assertEq(address(l1Proxy).balance, ethBefore - l1CallValue);
     }
