@@ -68,6 +68,7 @@ contract L1FarmProxy {
     event Rely(address indexed usr);
     event Deny(address indexed usr);
     event File(bytes32 indexed what, uint256 data);
+    event RewardAdded(uint256 reward);
 
     constructor(address _rewardsToken, address _l2Proxy, address _feeRecipient, address _l1Gateway) {
         rewardsToken = _rewardsToken;
@@ -147,5 +148,7 @@ contract L1FarmProxy {
             gasPriceBid: gasPriceBid_,
             data:        abi.encode(maxSubmissionCost, bytes(""))
         });
+
+        emit RewardAdded(reward);
     }
 }

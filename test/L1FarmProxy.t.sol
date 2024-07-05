@@ -34,6 +34,8 @@ contract L1FarmProxyTest is DssTest {
     address l2Proxy = address(0x222);
     address feeRecipient = address(0xfee);
 
+    event RewardAdded(uint256 rewards);
+
     function setUp() public {
         inbox = address(new InboxMock());
         gateway = address(new L1TokenGatewayMock(inbox, escrow));
@@ -101,6 +103,8 @@ contract L1FarmProxyTest is DssTest {
         uint256 ethBefore = address(l1Proxy).balance;
         (uint256 l1CallValue,) = l1Proxy.estimateDepositCost(0, 0, 0);
 
+        vm.expectEmit(true, true, true, true);
+        emit RewardAdded(101 ether);
         l1Proxy.notifyRewardAmount(101 ether);
 
         assertEq(rewardsToken.balanceOf(escrow), 101 ether);
