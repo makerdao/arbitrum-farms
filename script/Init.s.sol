@@ -89,7 +89,6 @@ contract Init is Script {
             vestTot:                   100 ether,
             vestBgn:                   block.timestamp,
             vestTau:                   100 days,
-            vestMgr:                   address(0),
             vestedRewardsDistribution: deps.readAddress(".vestedRewardsDistribution"),
             l1RewardsToken:            deps.readAddress(".l1RewardsToken"),
             l2RewardsToken:            l2RewardsToken,

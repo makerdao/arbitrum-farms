@@ -63,7 +63,6 @@ struct ProxiesConfig {
     uint256 vestTot;
     uint256 vestBgn;
     uint256 vestTau;
-    address vestMgr;
     address vestedRewardsDistribution;
     address l1RewardsToken;
     address l2RewardsToken;
@@ -115,7 +114,7 @@ library FarmProxyInit {
             _bgn: cfg.vestBgn,
             _tau: cfg.vestTau,
             _eta: 0,
-            _mgr: cfg.vestMgr
+            _mgr: address(0)
         });
         vest.restrict(vestId);
         distribution.file("vestId", vestId);

@@ -200,7 +200,6 @@ contract IntegrationTest is DssTest {
             vestTot:                   100 * 1e18,
             vestBgn:                   block.timestamp,
             vestTau:                   100 days,
-            vestMgr:                   address(0),
             vestedRewardsDistribution: address(vestedRewardsDistribution),
             l1RewardsToken:            address(l1Token),
             l2RewardsToken:            address(l2Token),
@@ -227,7 +226,6 @@ contract IntegrationTest is DssTest {
         assertEq(vest.bgn(vestId),                                            cfg.vestBgn);
         assertEq(vest.fin(vestId),                                            cfg.vestBgn + cfg.vestTau);
         assertEq(vest.clf(vestId),                                            cfg.vestBgn);
-        assertEq(vest.mgr(vestId),                                            cfg.vestMgr);
         assertEq(vest.res(vestId),                                            1);
         assertEq(l1Proxy.maxGas(),                                            cfg.maxGas);
         assertEq(l1Proxy.gasPriceBid(),                                       cfg.gasPriceBid);
