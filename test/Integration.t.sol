@@ -118,7 +118,6 @@ contract IntegrationTest is DssTest {
             maxSubmissionCost: 0.01 ether
         });
         GatewaysConfig memory cfg = GatewaysConfig({
-            counterpartGateway: address(l2Gateway),
             l1Router:           L1_ROUTER,
             inbox:              inbox,
             l1Tokens:           l1Tokens,
