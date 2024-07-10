@@ -221,10 +221,11 @@ contract IntegrationTest is DssTest {
         // test L1 side of initProxies
         vestId = vestedRewardsDistribution.vestId();
         assertEq(vest.usr(vestId),                                            cfg.vestedRewardsDistribution);
-        assertEq(vest.tot(vestId),                                            cfg.vestTot);
         assertEq(vest.bgn(vestId),                                            cfg.vestBgn);
-        assertEq(vest.fin(vestId),                                            cfg.vestBgn + cfg.vestTau);
         assertEq(vest.clf(vestId),                                            cfg.vestBgn);
+        assertEq(vest.fin(vestId),                                            cfg.vestBgn + cfg.vestTau);
+        assertEq(vest.tot(vestId),                                            cfg.vestTot);
+        assertEq(vest.mgr(vestId),                                            address(0));
         assertEq(vest.res(vestId),                                            1);
         assertEq(l1Proxy.maxGas(),                                            cfg.maxGas);
         assertEq(l1Proxy.gasPriceBid(),                                       cfg.gasPriceBid);
