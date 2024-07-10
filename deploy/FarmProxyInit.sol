@@ -93,17 +93,17 @@ library FarmProxyInit {
 
         // sanity checks
 
-        require(vest.gem()                    == cfg.l1RewardsToken,                   "FarmProxyInit/vest-gem-mismatch");
-        require(distribution.gem()            == cfg.l1RewardsToken,                   "FarmProxyInit/distribution-gem-mismatch");
-        require(distribution.stakingRewards() == l1Proxy_,                             "FarmProxyInit/distribution-farm-mismatch");
-        require(distribution.dssVest()        == cfg.vest,                             "FarmProxyInit/distribution-vest-mismatch");
-        require(l1Proxy.rewardsToken()        == cfg.l1RewardsToken,                   "FarmProxyInit/rewards-token-mismatch");
-        require(l1Proxy.l2Proxy()             == l2Proxy,                              "FarmProxyInit/l2-proxy-mismatch");
-        require(l1Proxy.feeRecipient()        == l1GovRelay.l2GovernanceRelay(),       "FarmProxyInit/fee-recipient-mismatch");
-        require(l1Proxy.l1Gateway()           == cfg.l1Gateway,                        "FarmProxyInit/l1-gateway-mismatch");
-        require(cfg.maxGas                    <= 10_000_000_000,                       "FarmProxyInit/max-gas-out-of-bounds");
-        require(cfg.gasPriceBid               <= 10_000 gwei,                          "FarmProxyInit/gas-price-bid-out-of-bounds");
-        require(cfg.rewardThreshold           <= type(uint128).max,                    "FarmProxyInit/reward-threshold-out-of-bounds");
+        require(vest.gem()                    == cfg.l1RewardsToken,             "FarmProxyInit/vest-gem-mismatch");
+        require(distribution.gem()            == cfg.l1RewardsToken,             "FarmProxyInit/distribution-gem-mismatch");
+        require(distribution.stakingRewards() == l1Proxy_,                       "FarmProxyInit/distribution-farm-mismatch");
+        require(distribution.dssVest()        == cfg.vest,                       "FarmProxyInit/distribution-vest-mismatch");
+        require(l1Proxy.rewardsToken()        == cfg.l1RewardsToken,             "FarmProxyInit/rewards-token-mismatch");
+        require(l1Proxy.l2Proxy()             == l2Proxy,                        "FarmProxyInit/l2-proxy-mismatch");
+        require(l1Proxy.feeRecipient()        == l1GovRelay.l2GovernanceRelay(), "FarmProxyInit/fee-recipient-mismatch");
+        require(l1Proxy.l1Gateway()           == cfg.l1Gateway,                  "FarmProxyInit/l1-gateway-mismatch");
+        require(cfg.maxGas                    <= 10_000_000_000,                 "FarmProxyInit/max-gas-out-of-bounds");
+        require(cfg.gasPriceBid               <= 10_000 gwei,                    "FarmProxyInit/gas-price-bid-out-of-bounds");
+        require(cfg.rewardThreshold           <= type(uint128).max,              "FarmProxyInit/reward-threshold-out-of-bounds");
 
         // setup vest
 
