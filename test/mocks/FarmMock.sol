@@ -19,13 +19,41 @@ pragma solidity ^0.8.21;
 
 contract FarmMock {
     address public immutable rewardsToken;
-    event RewardAdded(uint256 rewards);
+    address public immutable stakingToken;
 
-    constructor(address _rewardsToken) {
+    event OwnerNominated(address newOwner);
+    event PauseChanged(bool isPaused);
+    event RewardAdded(uint256 rewards);
+    event RewardsDurationUpdated(uint256 newDuration);
+    event RewardsDistributionUpdated(address newRewardsDistribution);
+    event Recovered(address token, uint256 amount);
+
+    constructor(address _rewardsToken, address _stakingToken) {
         rewardsToken = _rewardsToken;
+        stakingToken = _stakingToken;
+    }
+
+    function nominateNewOwner(address _owner) external {
+        emit OwnerNominated(_owner);
+    }
+
+    function setPaused(bool _paused) external {
+        emit PauseChanged(_paused);
     }
 
     function notifyRewardAmount(uint256 reward) external {
         emit RewardAdded(reward);
+    }
+
+    function recoverERC20(address tokenAddress, uint256 tokenAmount) external {
+        emit Recovered(tokenAddress, tokenAmount);
+    }
+
+    function setRewardsDuration(uint256 _rewardsDuration) external {
+        emit RewardsDurationUpdated(_rewardsDuration);
+    }
+
+    function setRewardsDistribution(address _rewardsDistribution) external {
+        emit RewardsDistributionUpdated(_rewardsDistribution);
     }
 }

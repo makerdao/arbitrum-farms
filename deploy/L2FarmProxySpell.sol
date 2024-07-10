@@ -22,6 +22,7 @@ interface L2FarmProxyLike {
     function rely(address) external;
     function deny(address) external;
     function file(bytes32, uint256) external;
+    function recover(address token, address to, uint256 amount) external;
 }
 
 interface FarmLike {
@@ -39,6 +40,7 @@ contract L2FarmProxySpell {
     function rely(address l2Proxy, address usr) external { L2FarmProxyLike(l2Proxy).rely(usr); }
     function deny(address l2Proxy, address usr) external { L2FarmProxyLike(l2Proxy).deny(usr); }
     function file(address l2Proxy, bytes32 what, uint256 data) external { L2FarmProxyLike(l2Proxy).file(what, data); }
+    function recover(address l2Proxy, address token, address to, uint256 amount) external { L2FarmProxyLike(l2Proxy).recover(token, to, amount); }
 
     function nominateNewOwner(address farm, address owner) external { FarmLike(farm).nominateNewOwner(owner); }
     function setPaused(address farm, bool paused) external { FarmLike(farm).setPaused(paused); }
@@ -57,7 +59,6 @@ contract L2FarmProxySpell {
         // sanity checks
         require(L2FarmProxyLike(l2Proxy).rewardsToken() == rewardsToken, "L2FarmProxySpell/rewards-token-mismatch");
         require(L2FarmProxyLike(l2Proxy).farm() == farm, "L2FarmProxySpell/farm-mismatch");
-        require(FarmLike(farm).rewardsToken() == rewardsToken, "L2FarmProxySpell/farm-rewards-token-mismatch");
         require(FarmLike(farm).stakingToken() == stakingToken, "L2FarmProxySpell/farm-rewards-token-mismatch");
         require(stakingToken != rewardsToken, "L2FarmProxySpell/rewards-token-same-as-staking-token");
 

@@ -33,7 +33,7 @@ contract L2FarmProxyTest is DssTest {
 
     function setUp() public {
         rewardsToken = new GemMock(1_000_000 ether);
-        farm = address(new FarmMock(address(rewardsToken)));
+        farm = address(new FarmMock(address(rewardsToken), address(123)));
         l2Proxy = new L2FarmProxy(farm);
     }
 
