@@ -19,6 +19,7 @@ pragma solidity ^0.8.21;
 
 interface GemLike {
     function approve(address, uint256) external;
+    function transfer(address, uint256) external;
 }
 
 interface L1TokenGatewayLike {
@@ -108,6 +109,11 @@ contract L1FarmProxy {
     function reclaim(address receiver, uint256 amount) external auth {
         (bool sent,) = receiver.call{value: amount}("");
         require(sent, "L1FarmProxy/failed-to-send-ether");
+    }
+
+    // @notice Allow governance to recover potentially stuck tokens
+    function recover(address token, address to, uint256 amount) external auth {
+        GemLike(token).transfer(to, amount);
     }
 
     // @notice Estimate the amount of ETH consumed as msg.value from this contract to bridge the reward to the L2 proxy

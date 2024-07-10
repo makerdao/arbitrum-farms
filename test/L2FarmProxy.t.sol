@@ -54,6 +54,27 @@ contract L2FarmProxyTest is DssTest {
         checkFileUint(address(l2Proxy), "L2FarmProxy", ["rewardThreshold"]);
     }
 
+    function testAuthModifiers() public virtual {
+        l2Proxy.deny(address(this));
+
+        checkModifier(address(l2Proxy), string(abi.encodePacked("L2FarmProxy", "/not-authorized")), [
+            l2Proxy.recover.selector
+        ]);
+    }
+
+    function testRecover() public {
+        address to = address(0x123);
+        rewardsToken.transfer(address(l2Proxy), 1 ether);
+
+        assertEq(rewardsToken.balanceOf(to), 0);
+        assertEq(rewardsToken.balanceOf(address(l2Proxy)), 1 ether);
+
+        l2Proxy.recover(address(rewardsToken), to, 1 ether);
+
+        assertEq(rewardsToken.balanceOf(to), 1 ether);
+        assertEq(rewardsToken.balanceOf(address(l2Proxy)), 0);
+    }
+
     function testForwardReward() public {
         l2Proxy.file("rewardThreshold", 100 ether);
         rewardsToken.transfer(address(l2Proxy), 100 ether);

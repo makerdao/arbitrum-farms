@@ -69,7 +69,8 @@ contract L1FarmProxyTest is DssTest {
         l1Proxy.deny(address(this));
 
         checkModifier(address(l1Proxy), string(abi.encodePacked("L1FarmProxy", "/not-authorized")), [
-            l1Proxy.reclaim.selector
+            l1Proxy.reclaim.selector,
+            l1Proxy.recover.selector
         ]);
     }
 
@@ -87,6 +88,19 @@ contract L1FarmProxyTest is DssTest {
 
         vm.expectRevert("L1FarmProxy/failed-to-send-ether");
         l1Proxy.reclaim(to, 1 ether); // insufficient balance
+    }
+
+    function testRecover() public {
+        address to = address(0x123);
+        rewardsToken.transfer(address(l1Proxy), 1 ether);
+
+        assertEq(rewardsToken.balanceOf(to), 0);
+        assertEq(rewardsToken.balanceOf(address(l1Proxy)), 1 ether);
+
+        l1Proxy.recover(address(rewardsToken), to, 1 ether);
+
+        assertEq(rewardsToken.balanceOf(to), 1 ether);
+        assertEq(rewardsToken.balanceOf(address(l1Proxy)), 0);
     }
 
     function testNotifyRewardAmount() public {
