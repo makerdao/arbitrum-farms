@@ -146,7 +146,7 @@ contract L2FarmProxySpellTest is DssTest {
             7 days
         )));
         assertFalse(success);
-        assertEq(_getRevertMsg(response), "L2FarmProxySpell/farm-rewards-token-mismatch");
+        assertEq(_getRevertMsg(response), "L2FarmProxySpell/farm-staking-token-mismatch");
 
         address badFarm = address(new FarmMock(address(rewardsToken), address(rewardsToken)));
         address badL2Proxy = address(new L2FarmProxy(badFarm));
