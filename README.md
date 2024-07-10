@@ -25,7 +25,7 @@ This repository implements a mechanism to distribute rewards vested in a [DssVes
 - Once the vested amount of rewards tokens exceeds `L1FarmProxy.rewardThreshold`, a keeper calls `VestedRewardDistribution.distribute()` to vest the rewards and have them bridged to L2.
 - Once the bridged amount of rewards tokens exceeds `L2FarmProxy.rewardThreshold`, anyone (e.g. a keeper or an L2 staker) can call `L2FarmProxy.forwardReward()` to distribute the rewards to the L2 farm.
 
-Note that `L1FarmProxy.rewardThreshold` must be sufficiently large to reduce the frequency of cross-chain transfers (thereby also reducing the amount of ether that needs to be provisionned into the `L1FarmProxy`). `L2FarmProxy.rewardThreshold` must also be sufficiently large to limit the reduction of the farm's rate of rewards distribution. Consider also choosing `L2FarmProxy.rewardThreshold <= L1FarmProxy.rewardThreshold` so that the bridged rewards can be promptly distributed to the farm.
+Note that `L1FarmProxy.rewardThreshold` must be sufficiently large to reduce the frequency of cross-chain transfers (thereby also reducing the amount of ether that needs to be provisionned into the `L1FarmProxy`). `L2FarmProxy.rewardThreshold` must also be sufficiently large to limit the reduction of the farm's rate of rewards distribution. Consider also choosing `L2FarmProxy.rewardThreshold <= L1FarmProxy.rewardThreshold` so that the bridged rewards can be promptly distributed to the farm. In the initialization library, these two variables are assigned the same value.
 
 ## Deployment
 

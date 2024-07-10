@@ -65,7 +65,7 @@ contract Init is Script {
         address l2RewardsToken = deps.readAddress(".l2RewardsToken");
         address stakingToken = deps.readAddress(".stakingToken");
         address farm = deps.readAddress(".farm");
-        uint256 l2RewardThreshold = 0;
+        uint256 rewardThreshold = 0;
         uint256 rewardsDuration = 1 days;
 
         bytes memory initCalldata = abi.encodeCall(L2GovernanceRelayLike.relay, (
@@ -75,7 +75,7 @@ contract Init is Script {
                 l2RewardsToken,
                 stakingToken,
                 farm,
-                l2RewardThreshold,
+                rewardThreshold,
                 rewardsDuration
             ))
         ));
@@ -96,8 +96,7 @@ contract Init is Script {
             l1Gateway:                 deps.readAddress(".l1Gateway"),
             maxGas:                    70_000_000, // determined by running deploy/Estimate.s.sol and adding some margin
             gasPriceBid:               0.1 gwei, // 0.01 gwei arbitrum-one gas price floor * 10x factor
-            l1RewardThreshold:         0,
-            l2RewardThreshold:         l2RewardThreshold,
+            rewardThreshold:           rewardThreshold,
             farm:                      farm,
             rewardsDuration:           rewardsDuration, 
             xchainMsg:                 xchainMsg,

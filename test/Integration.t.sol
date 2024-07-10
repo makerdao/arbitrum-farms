@@ -206,8 +206,7 @@ contract IntegrationTest is DssTest {
             l1Gateway:                 l1Gateway,
             maxGas:                    70_000_000, // determined by running deploy/Estimate.s.sol and adding some margin
             gasPriceBid:               0.1 gwei, // 0.01 gwei arbitrum-one gas price floor * 10x factor
-            l1RewardThreshold:         1 ether,
-            l2RewardThreshold:         1 ether,
+            rewardThreshold:           1 ether,
             farm:                      address(farm),
             rewardsDuration:           1 days, 
             xchainMsg:                 xchainMsg,
@@ -229,28 +228,24 @@ contract IntegrationTest is DssTest {
         assertEq(vest.res(vestId),                                            1);
         assertEq(l1Proxy.maxGas(),                                            cfg.maxGas);
         assertEq(l1Proxy.gasPriceBid(),                                       cfg.gasPriceBid);
-        assertEq(l1Proxy.rewardThreshold(),                                   cfg.l1RewardThreshold);
+        assertEq(l1Proxy.rewardThreshold(),                                   cfg.rewardThreshold);
         assertEq(dss.chainlog.getAddress("FARM_PROXY_TKA_TKB_ARB"),           address(l1Proxy));
         assertEq(dss.chainlog.getAddress("REWARDS_DISTRIBUTION_TKA_TKB_ARB"), cfg.vestedRewardsDistribution);
 
         l2Domain.relayFromHost(true);
 
         // test L2 side of initProxies
-        assertEq(l2Proxy.rewardThreshold(),  cfg.l2RewardThreshold);
+        assertEq(l2Proxy.rewardThreshold(),  cfg.rewardThreshold);
         assertEq(farm.rewardsDistribution(), address(l2Proxy));
         assertEq(farm.rewardsDuration(),     cfg.rewardsDuration);
     }
 
     function testDistribution() public {
-        l2Domain.selectFork();
-        uint256 l2Th = l2Proxy.rewardThreshold();
-
         l1Domain.selectFork();
-        uint256 l1Th = l1Proxy.rewardThreshold();
-        uint256 maxThreshold = l2Th > l1Th ? l2Th : l1Th;
-        vm.warp(vest.bgn(vestId) + maxThreshold * (vest.fin(vestId) - vest.bgn(vestId)) / vest.tot(vestId) + 1);
+        uint256 rewardThreshold = l1Proxy.rewardThreshold();
+        vm.warp(vest.bgn(vestId) + rewardThreshold * (vest.fin(vestId) - vest.bgn(vestId)) / vest.tot(vestId) + 1);
         uint256 amount = vest.unpaid(vestId);
-        assertGt(amount, maxThreshold);
+        assertGt(amount, rewardThreshold);
         assertEq(l1Token.balanceOf(ESCROW), 0);
 
         vestedRewardsDistribution.distribute();

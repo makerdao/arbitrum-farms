@@ -70,8 +70,7 @@ struct ProxiesConfig {
     address l1Gateway;
     uint256 maxGas;            // For the L1 proxy
     uint256 gasPriceBid;       // For the L1 proxy
-    uint256 l1RewardThreshold; // For the L1 proxy
-    uint256 l2RewardThreshold; // For the L2 proxy
+    uint256 rewardThreshold;   // For the L1 and L2 proxies 
     address farm;              // The L2 farm
     uint256 rewardsDuration;   // For the L2 farm
     MessageParams xchainMsg;   // For the xchain message executing the L2 spell
@@ -104,7 +103,7 @@ library FarmProxyInit {
         require(l1Proxy.l1Gateway()           == cfg.l1Gateway,                        "FarmProxyInit/l1-gateway-mismatch");
         require(cfg.maxGas                    <= 10_000_000_000,                       "FarmProxyInit/max-gas-out-of-bounds");
         require(cfg.gasPriceBid               <= 10_000 gwei,                          "FarmProxyInit/gas-price-bid-out-of-bounds");
-        require(cfg.l1RewardThreshold         <= type(uint128).max,                    "FarmProxyInit/l1-reward-threshold-out-of-bounds");
+        require(cfg.rewardThreshold           <= type(uint128).max,                    "FarmProxyInit/reward-threshold-out-of-bounds");
 
         // setup vest
 
@@ -123,7 +122,7 @@ library FarmProxyInit {
 
         l1Proxy.file("maxGas",          cfg.maxGas);
         l1Proxy.file("gasPriceBid",     cfg.gasPriceBid);
-        l1Proxy.file("rewardThreshold", cfg.l1RewardThreshold);
+        l1Proxy.file("rewardThreshold", cfg.rewardThreshold);
 
         // setup L2 proxy
 
@@ -140,7 +139,7 @@ library FarmProxyInit {
                 cfg.l2RewardsToken,
                 cfg.stakingToken,
                 cfg.farm,
-                cfg.l2RewardThreshold,
+                cfg.rewardThreshold,
                 cfg.rewardsDuration
             )),
             l1CallValue:       l1CallValue,
