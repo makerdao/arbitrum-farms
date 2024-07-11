@@ -112,8 +112,8 @@ contract L1FarmProxy {
     }
 
     // @notice Allow governance to recover potentially stuck tokens
-    function recover(address token, address to, uint256 amount) external auth {
-        GemLike(token).transfer(to, amount);
+    function recover(address token, address receiver, uint256 amount) external auth {
+        GemLike(token).transfer(receiver, amount);
     }
 
     // @notice Estimate the amount of ETH consumed as msg.value from this contract to bridge the reward to the L2 proxy

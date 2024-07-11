@@ -61,8 +61,8 @@ contract L2FarmProxy {
     }
 
     // @notice Allow governance to recover potentially stuck tokens
-    function recover(address token, address to, uint256 amount) external auth {
-        GemLike(token).transfer(to, amount);
+    function recover(address token, address receiver, uint256 amount) external auth {
+        GemLike(token).transfer(receiver, amount);
     }
 
     // @notice The transferred reward must exceed a minimum threshold to reduce the impact of 

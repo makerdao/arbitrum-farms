@@ -91,15 +91,15 @@ contract L1FarmProxyTest is DssTest {
     }
 
     function testRecover() public {
-        address to = address(0x123);
+        address receiver = address(0x123);
         rewardsToken.transfer(address(l1Proxy), 1 ether);
 
-        assertEq(rewardsToken.balanceOf(to), 0);
+        assertEq(rewardsToken.balanceOf(receiver), 0);
         assertEq(rewardsToken.balanceOf(address(l1Proxy)), 1 ether);
 
-        l1Proxy.recover(address(rewardsToken), to, 1 ether);
+        l1Proxy.recover(address(rewardsToken), receiver, 1 ether);
 
-        assertEq(rewardsToken.balanceOf(to), 1 ether);
+        assertEq(rewardsToken.balanceOf(receiver), 1 ether);
         assertEq(rewardsToken.balanceOf(address(l1Proxy)), 0);
     }
 
