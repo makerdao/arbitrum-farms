@@ -21,6 +21,7 @@ import { ScriptTools } from "dss-test/ScriptTools.sol";
 import { L2FarmProxySpell } from "./L2FarmProxySpell.sol";
 import { L1FarmProxy } from "src/L1FarmProxy.sol";
 import { L2FarmProxy } from "src/L2FarmProxy.sol";
+import { EtherForwarder } from "src/EtherForwarder.sol";
 
 library FarmProxyDeploy {
     function deployL1Proxy(
@@ -46,5 +47,9 @@ library FarmProxyDeploy {
 
     function deployL2ProxySpell() internal returns (address l2Spell) {
         l2Spell = address(new L2FarmProxySpell());
+    }
+
+    function deployL2EtherForwarder(address receiver) internal returns (address forwarder) {
+        forwarder = address(new EtherForwarder(receiver));
     }
 }

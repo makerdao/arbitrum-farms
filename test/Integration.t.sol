@@ -168,6 +168,7 @@ contract IntegrationTest is DssTest {
             farm:     address(farm)
         }));
         address l2Spell = FarmProxyDeploy.deployL2ProxySpell();
+        address forwarder = FarmProxyDeploy.deployL2EtherForwarder(L2_GOV_RELAY);
 
         l1Domain.selectFork();
         l1Proxy = L1FarmProxy(payable(FarmProxyDeploy.deployL1Proxy({
@@ -175,7 +176,7 @@ contract IntegrationTest is DssTest {
             owner:        PAUSE_PROXY,
             rewardsToken: address(l1Token), 
             l2Proxy:      address(l2Proxy),
-            feeRecipient: L2_GOV_RELAY,
+            feeRecipient: forwarder,
             l1Gateway:    l1Gateway
         })));
 
@@ -204,8 +205,8 @@ contract IntegrationTest is DssTest {
             l2RewardsToken:            address(l2Token),
             stakingToken:              stakingToken,
             l1Gateway:                 l1Gateway,
-            maxGas:                    70_000_000, // determined by running deploy/Estimate.s.sol and adding some margin
-            gasPriceBid:               0.1 gwei, // 0.01 gwei arbitrum-one gas price floor * 10x factor
+            maxGas:                    1_000_000, // determined by running deploy/Estimate.s.sol and adding some margin
+            gasPriceBid:               0.1 gwei, // 0.01 gwei arbitrum_one gas price floor * 10x factor
             rewardThreshold:           1 ether,
             farm:                      address(farm),
             rewardsDuration:           1 days, 
@@ -214,7 +215,7 @@ contract IntegrationTest is DssTest {
             distrChainlogKey:          "REWARDS_DISTRIBUTION_TKA_TKB_ARB"
         });
         vm.startPrank(PAUSE_PROXY);
-        FarmProxyInit.initProxies(dss, address(l1Proxy), address(l2Proxy), l2Spell, cfg);
+        FarmProxyInit.initProxies(dss, address(l1Proxy), address(l2Proxy), forwarder, l2Spell, cfg);
         vm.stopPrank();
 
         // test L1 side of initProxies
