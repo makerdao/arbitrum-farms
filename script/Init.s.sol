@@ -40,7 +40,6 @@ contract Init is Script {
     Domain l1Domain;
     Domain l2Domain;
     DssInstance dss;
-
     address l1GovRelay;
     address l2GovRelay;
 
