@@ -39,21 +39,6 @@ interface InboxLike {
     function calculateRetryableSubmissionFee(uint256 dataLength, uint256 baseFee) external view returns (uint256);
 }
 
-// From https://github.com/OffchainLabs/nitro-contracts/blob/90037b996509312ef1addb3f9352457b8a99d6a6/src/libraries/AddressAliasHelper.sol
-library AddressAliasHelper {
-    uint160 constant offset = uint160(0x1111000000000000000000000000000000001111);
-
-    /// @notice Utility function that converts the msg.sender viewed in the L2 to the
-    /// address in the L1 that submitted a tx to the inbox
-    /// @param l2Address L2 address as viewed in msg.sender
-    /// @return l1Address the address in the L1 that triggered the tx to L2
-    function undoL1ToL2Alias(address l2Address) internal pure returns (address l1Address) {
-        unchecked {
-            l1Address = address(uint160(l2Address) - offset);
-        }
-    }
-}
-
 contract L1FarmProxy {
     mapping (address => uint256) public wards;
     uint64  public maxGas;
@@ -62,7 +47,7 @@ contract L1FarmProxy {
 
     address public immutable rewardsToken;
     address public immutable l2Proxy;
-    address public immutable feeRecipient; // L2 recipient of excess fee. Negative alias must be applied to it if the address contains code on L1
+    address public immutable feeRecipient; // L2 recipient of excess fee. This address must never contain code on L1.
     InboxLike public immutable inbox;
     L1TokenGatewayLike public immutable l1Gateway;
 
@@ -142,12 +127,9 @@ contract L1FarmProxy {
 
         (uint256 l1CallValue, uint256 maxSubmissionCost) = estimateDepositCost(0, maxGas_, gasPriceBid_);
 
-        // If the address of feeRecipient has code on L1, it will be aliased by the Arbitrum Inbox, which we want to cancel out here
-        address refundTo = (feeRecipient.code.length > 0) ? AddressAliasHelper.undoL1ToL2Alias(feeRecipient) : feeRecipient;
-
         l1Gateway.outboundTransferCustomRefund{value: l1CallValue}({
             l1Token:     rewardsToken,
-            refundTo:    refundTo,
+            refundTo:    feeRecipient,
             to:          l2Proxy,
             amount:      reward,
             maxGas:      maxGas_,

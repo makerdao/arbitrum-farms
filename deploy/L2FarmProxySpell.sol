@@ -35,6 +35,10 @@ interface FarmLike {
     function setRewardsDistribution(address) external;
 }
 
+interface ForwarderLike {
+    function receiver() external view returns (address);
+}
+
 // A reusable L2 spell to be used by the L2GovernanceRelay to exert admin control over L2 farms and their proxies
 contract L2FarmProxySpell {
     function rely(address l2Proxy, address usr) external { L2FarmProxyLike(l2Proxy).rely(usr); }
@@ -50,6 +54,7 @@ contract L2FarmProxySpell {
 
     function init(
         address l2Proxy,
+        address etherForwarder,
         address rewardsToken,
         address stakingToken,
         address farm,
@@ -57,10 +62,11 @@ contract L2FarmProxySpell {
         uint256 rewardsDuration
     ) external {
         // sanity checks
-        require(L2FarmProxyLike(l2Proxy).rewardsToken() == rewardsToken, "L2FarmProxySpell/rewards-token-mismatch");
-        require(L2FarmProxyLike(l2Proxy).farm() == farm, "L2FarmProxySpell/farm-mismatch");
-        require(FarmLike(farm).stakingToken() == stakingToken, "L2FarmProxySpell/farm-staking-token-mismatch");
-        require(stakingToken != rewardsToken, "L2FarmProxySpell/rewards-token-same-as-staking-token");
+        require(L2FarmProxyLike(l2Proxy).rewardsToken() == rewardsToken,   "L2FarmProxySpell/rewards-token-mismatch");
+        require(L2FarmProxyLike(l2Proxy).farm() == farm,                   "L2FarmProxySpell/farm-mismatch");
+        require(ForwarderLike(etherForwarder).receiver() == address(this), "L2FarmProxySpell/forwarder-receiver-not-gov-relay");
+        require(FarmLike(farm).stakingToken() == stakingToken,             "L2FarmProxySpell/farm-staking-token-mismatch");
+        require(stakingToken != rewardsToken,                              "L2FarmProxySpell/rewards-token-same-as-staking-token");
 
         L2FarmProxyLike(l2Proxy).file("rewardThreshold", rewardThreshold);
     

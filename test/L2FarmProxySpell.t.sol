@@ -19,6 +19,7 @@ pragma solidity ^0.8.21;
 
 import "dss-test/DssTest.sol";
 
+import { EtherForwarder } from "src/EtherForwarder.sol";
 import { L2FarmProxy } from "src/L2FarmProxy.sol";
 import { L2FarmProxySpell } from "deploy/L2FarmProxySpell.sol";
 import { FarmMock } from "test/mocks/FarmMock.sol";
@@ -29,6 +30,7 @@ contract L2FarmProxySpellTest is DssTest {
     GemMock rewardsToken;
     address stakingToken = address(444);
     address l2Proxy;
+    address forwarder;
     L2FarmProxySpell l2Spell;
     address farm;
 
@@ -42,6 +44,7 @@ contract L2FarmProxySpellTest is DssTest {
         rewardsToken = new GemMock(1_000_000 ether);
         farm = address(new FarmMock(address(rewardsToken), stakingToken));
         l2Proxy = address(new L2FarmProxy(farm));
+        forwarder = address(new EtherForwarder(address(this)));
         l2Spell = new L2FarmProxySpell();
     }
 
@@ -117,6 +120,7 @@ contract L2FarmProxySpellTest is DssTest {
 
         (success, response) = address(l2Spell).delegatecall(abi.encodeCall(L2FarmProxySpell.init, (
             l2Proxy,
+            forwarder,
             address(0xb4d),
             stakingToken,
             farm,
@@ -128,6 +132,7 @@ contract L2FarmProxySpellTest is DssTest {
 
         (success, response) = address(l2Spell).delegatecall(abi.encodeCall(L2FarmProxySpell.init, (
             l2Proxy,
+            forwarder,
             address(rewardsToken),
             stakingToken,
             address(0xb4d),
@@ -137,8 +142,22 @@ contract L2FarmProxySpellTest is DssTest {
         assertFalse(success);
         assertEq(_getRevertMsg(response), "L2FarmProxySpell/farm-mismatch");
 
+        address badForwarder = address(new EtherForwarder(address(0xb4d)));
         (success, response) = address(l2Spell).delegatecall(abi.encodeCall(L2FarmProxySpell.init, (
             l2Proxy,
+            badForwarder,
+            address(rewardsToken),
+            stakingToken,
+            farm,
+            0,
+            7 days
+        )));
+        assertFalse(success);
+        assertEq(_getRevertMsg(response), "L2FarmProxySpell/forwarder-receiver-not-gov-relay");
+
+        (success, response) = address(l2Spell).delegatecall(abi.encodeCall(L2FarmProxySpell.init, (
+            l2Proxy,
+            forwarder,
             address(rewardsToken),
             address(0xb4d),
             farm,
@@ -152,6 +171,7 @@ contract L2FarmProxySpellTest is DssTest {
         address badL2Proxy = address(new L2FarmProxy(badFarm));
         (success, response) = address(l2Spell).delegatecall(abi.encodeCall(L2FarmProxySpell.init, (
             badL2Proxy,
+            forwarder,
             address(rewardsToken),
             address(rewardsToken),
             badFarm,
@@ -169,6 +189,7 @@ contract L2FarmProxySpellTest is DssTest {
         emit RewardsDurationUpdated(7 days);
         (success, response) = address(l2Spell).delegatecall(abi.encodeCall(L2FarmProxySpell.init, (
             l2Proxy,
+            forwarder,
             address(rewardsToken),
             stakingToken,
             farm,

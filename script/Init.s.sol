@@ -40,7 +40,6 @@ contract Init is Script {
     Domain l1Domain;
     Domain l2Domain;
     DssInstance dss;
-
     address l1GovRelay;
     address l2GovRelay;
 
@@ -61,6 +60,7 @@ contract Init is Script {
         RetryableTickets retryable = new RetryableTickets(l1Domain, l2Domain, l1GovRelay, l2GovRelay);
 
         address l2Proxy = deps.readAddress(".l2Proxy");
+        address forwarder = deps.readAddress(".etherForwarder");
         address l2ProxySpell = deps.readAddress(".l2ProxySpell");
         address l2RewardsToken = deps.readAddress(".l2RewardsToken");
         address stakingToken = deps.readAddress(".stakingToken");
@@ -72,6 +72,7 @@ contract Init is Script {
             l2ProxySpell, 
             abi.encodeCall(L2FarmProxySpell.init, (
                 l2Proxy,
+                forwarder,
                 l2RewardsToken,
                 stakingToken,
                 farm,
@@ -94,8 +95,8 @@ contract Init is Script {
             l2RewardsToken:            l2RewardsToken,
             stakingToken:              stakingToken,
             l1Gateway:                 deps.readAddress(".l1Gateway"),
-            maxGas:                    70_000_000, // determined by running deploy/Estimate.s.sol and adding some margin
-            gasPriceBid:               0.1 gwei, // 0.01 gwei arbitrum-one gas price floor * 10x factor
+            maxGas:                    70_000_000,
+            gasPriceBid:               1 gwei, // 0.1 gwei arbitrum_one_sepolia gas price floor * 10x factor
             rewardThreshold:           rewardThreshold,
             farm:                      farm,
             rewardsDuration:           rewardsDuration, 
@@ -115,6 +116,7 @@ contract Init is Script {
             dss,
             deps.readAddress(".l1Proxy"),
             l2Proxy,
+            forwarder,
             l2ProxySpell,
             cfg
         );

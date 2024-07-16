@@ -21,8 +21,6 @@ import "forge-std/Script.sol";
 
 import { ScriptTools } from "dss-test/ScriptTools.sol";
 import { Domain } from "dss-test/domains/Domain.sol";
-
-import { StakingRewardsDeploy, StakingRewardsDeployParams } from "lib/endgame-toolkit/script/dependencies/StakingRewardsDeploy.sol";
 import { VestedRewardsDistributionDeploy, VestedRewardsDistributionDeployParams } from "lib/endgame-toolkit/script/dependencies/VestedRewardsDistributionDeploy.sol";
 import { DssVestMintableMock } from "test/mocks/DssVestMock.sol";
 import { FarmProxyDeploy } from "deploy/FarmProxyDeploy.sol";
@@ -31,33 +29,27 @@ interface ChainLogLike {
     function getAddress(bytes32) external view returns (address);
 }
 
-interface L1GovernanceRelayLike {
-    function l2GovernanceRelay() external view returns (address);
-}
-
 interface AuthLike {
     function rely(address usr) external;
 }
 
-contract Deploy is Script {
+contract DeployL1FarmProxy is Script {
+    using stdJson for string;
+
     StdChains.Chain l1Chain;
     StdChains.Chain l2Chain;
     string config;
+    string deps;
     Domain l1Domain;
     Domain l2Domain;
     address deployer;
     ChainLogLike chainlog;
     address owner;
-    address l1GovRelay;
-    address l2GovRelay;
     address l1Gateway;
     address vest;
     address stakingToken;
     address l1RewardsToken;
     address l2RewardsToken;
-    address farm;
-    address l2Spell;
-    address l2Proxy;
     address l1Proxy;
     address vestedRewardsDistribution;
 
@@ -66,14 +58,13 @@ contract Deploy is Script {
         l2Chain = getChain(string(vm.envOr("L2", string("arbitrum_one"))));
         vm.setEnv("FOUNDRY_ROOT_CHAINID", vm.toString(l1Chain.chainId)); // used by ScriptTools to determine config path
         config = ScriptTools.loadConfig("config");
+        deps   = ScriptTools.loadDependencies();
         l1Domain = new Domain(config, l1Chain);
         l2Domain = new Domain(config, l2Chain);
         l1Domain.selectFork();
 
         (,deployer, ) = vm.readCallers();
         chainlog = ChainLogLike(l1Domain.readConfigAddress("chainlog"));
-        l1GovRelay = chainlog.getAddress("ARBITRUM_GOV_RELAY");
-        l2GovRelay = L1GovernanceRelayLike(payable(l1GovRelay)).l2GovernanceRelay();
         l1Gateway = chainlog.getAddress("ARBITRUM_TOKEN_BRIDGE");
         l1RewardsToken = l1Domain.readConfigAddress("rewardsToken");
 
@@ -89,35 +80,15 @@ contract Deploy is Script {
             vm.stopBroadcast();
         }
 
-        // L2 deployment
-
-        l2Domain.selectFork();
-
-        stakingToken = l2Domain.readConfigAddress("stakingToken");
-        l2RewardsToken = l2Domain.readConfigAddress("rewardsToken");
-        StakingRewardsDeployParams memory farmParams = StakingRewardsDeployParams({
-            owner: l2GovRelay,
-            stakingToken: stakingToken,
-            rewardsToken: l2RewardsToken
-        });
-
-        vm.startBroadcast();
-        farm = StakingRewardsDeploy.deploy(farmParams);
-        l2Spell = FarmProxyDeploy.deployL2ProxySpell();
-        l2Proxy = FarmProxyDeploy.deployL2Proxy(deployer, l2GovRelay, farm);
-        vm.stopBroadcast();
-
         // L1 deployment
-
-        l1Domain.selectFork();
 
         vm.startBroadcast();
         l1Proxy = FarmProxyDeploy.deployL1Proxy(
             deployer,
             owner,
             l1RewardsToken,
-            l2Proxy,
-            l2GovRelay,
+            deps.readAddress(".l2Proxy"),
+            deps.readAddress(".etherForwarder"),
             l1Gateway
         );
         VestedRewardsDistributionDeployParams memory distributionParams = VestedRewardsDistributionDeployParams({
@@ -131,18 +102,21 @@ contract Deploy is Script {
 
         // Export contract addresses
 
-        ScriptTools.exportContract("deployed", "chainlog", address(chainlog));
-        ScriptTools.exportContract("deployed", "farm", farm);
-        ScriptTools.exportContract("deployed", "l2ProxySpell", l2Spell);
-        ScriptTools.exportContract("deployed", "l2Proxy", l2Proxy);
+        // TODO: load the existing json so this is not required
+        ScriptTools.exportContract("deployed", "chainlog", deps.readAddress(".chainlog"));
+        ScriptTools.exportContract("deployed", "l2ProxySpell", deps.readAddress(".l2ProxySpell"));
+        ScriptTools.exportContract("deployed", "etherForwarder", deps.readAddress(".etherForwarder"));
+        ScriptTools.exportContract("deployed", "l1GovRelay", deps.readAddress(".l1GovRelay"));
+        ScriptTools.exportContract("deployed", "l2GovRelay", deps.readAddress(".l2GovRelay"));
+        ScriptTools.exportContract("deployed", "farm", deps.readAddress(".farm"));
+        ScriptTools.exportContract("deployed", "l2Proxy", deps.readAddress(".l2Proxy"));        
+        ScriptTools.exportContract("deployed", "l2RewardsToken", deps.readAddress(".l2RewardsToken"));
+        ScriptTools.exportContract("deployed", "stakingToken", deps.readAddress(".stakingToken"));
+
         ScriptTools.exportContract("deployed", "l1Proxy", l1Proxy);
         ScriptTools.exportContract("deployed", "vest", vest);
         ScriptTools.exportContract("deployed", "vestedRewardsDistribution", vestedRewardsDistribution);
-        ScriptTools.exportContract("deployed", "l1GovRelay", l1GovRelay);
-        ScriptTools.exportContract("deployed", "l2GovRelay", l2GovRelay);
         ScriptTools.exportContract("deployed", "l1RewardsToken", l1RewardsToken);
-        ScriptTools.exportContract("deployed", "l2RewardsToken", l2RewardsToken);
-        ScriptTools.exportContract("deployed", "stakingToken", stakingToken);
         ScriptTools.exportContract("deployed", "l1Gateway", l1Gateway);
     }
 }
