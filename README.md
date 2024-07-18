@@ -61,19 +61,13 @@ Fill in the address of the mainnet DssVest contract in `script/input/1/config.js
 Start by deploying the `EtherForwarder` and `L2FarmProxySpell` singletons. You must use a deployment key for which the current nonce on L2 has been "burned" on L1 (i.e. has already been spent on L1 in a transaction that is not a contract creation transaction). This is required to make sure the address of the `EtherForwarder` can never contain code on L1. If that address ever had code on L1, it would no longer be usable as an excess fee refund receiver (see the reason why [here](https://github.com/OffchainLabs/nitro-contracts/blob/61204dd455966cb678192427a07aa9795ff91c14/src/bridge/AbsInbox.sol#L248)).
 
 ```
-forge script script/DeployL2Singletons.s.sol:DeployL2Singletons --sender $L2_DEPLOYER --private-key $L2_PRIVATE_KEY --slow  --multi --broadcast --verify
+forge script script/DeploySingletons.s.sol:DeploySingletons --slow --multi --broadcast --verify
 ```
 
-Next, run the following command to deploy the L2 farm and its L2 proxy:
+Next, run the following command to deploy the L1 vested rewards distribution contract, the L2 farm and the L1 and L2 proxies:
 
 ```
-forge script script/DeployL2FarmProxy.s.sol:DeployL2FarmProxy --sender $L2_DEPLOYER --private-key $L2_PRIVATE_KEY --slow  --multi --broadcast --verify
-```
-
-Finally, run the following command to deploy the L1 vested rewards distribution contract and the L1 proxy:
-
-```
-forge script script/DeployL1FarmProxy.s.sol:DeployL1FarmProxy --sender $L1_DEPLOYER --private-key $L1_PRIVATE_KEY --slow  --multi --broadcast --verify
+forge script script/DeployProxy.s.sol:DeployProxy --slow --multi --broadcast --verify
 ```
 
 ### Initialize the farm L1 & L2 proxies
@@ -81,13 +75,13 @@ forge script script/DeployL1FarmProxy.s.sol:DeployL1FarmProxy --sender $L1_DEPLO
 On mainnet, the farm proxies should be initialized via the spell process. To determine an adequate value for the `maxGas` storage variable of `L1FarmProxy`, the `Estimate` script can be run:
 
 ```
-forge script script/Estimate.s.sol:Estimate --sender $L1_DEPLOYER --private-key $L1_PRIVATE_KEY
+forge script script/Estimate.s.sol:Estimate
 ```
 
 On testnet, the proxies initialization can be performed via the following command:
 
 ```
-forge script script/Init.s.sol:Init --sender $L1_DEPLOYER --private-key $L1_PRIVATE_KEY --slow --multi --broadcast
+forge script script/Init.s.sol:Init --slow --multi --broadcast
 ```
 
 ### Run a test distribution
@@ -95,11 +89,11 @@ forge script script/Init.s.sol:Init --sender $L1_DEPLOYER --private-key $L1_PRIV
 Run the following command to distribute the vested funds to the L1 proxy:
 
 ```
-forge script script/Distribute.s.sol:Distribute --sender $L1_DEPLOYER --private-key $L1_PRIVATE_KEY --slow --multi --broadcast
+forge script script/Distribute.s.sol:Distribute --slow --multi --broadcast
 ```
 
 Wait for the transaction to be relayed to L2, then run the following command to forward the bridged funds from the L2 proxy to the farm:
 
 ```
-forge script script/Forward.s.sol:Forward --sender $L2_DEPLOYER --private-key $L2_PRIVATE_KEY --slow --multi --broadcast
+forge script script/Forward.s.sol:Forward --slow --multi --broadcast
 ```

@@ -34,6 +34,8 @@ interface L1ProxyLike {
 contract Distribute is Script {
     using stdJson for string;
 
+    uint256 l1PrivKey = vm.envUint("L1_PRIVATE_KEY");
+
     function run() external {
         StdChains.Chain memory l1Chain = getChain(string(vm.envOr("L1", string("mainnet"))));
         vm.setEnv("FOUNDRY_ROOT_CHAINID", vm.toString(l1Chain.chainId)); // used by ScriptTools to determine config path
@@ -46,7 +48,7 @@ contract Distribute is Script {
         address l1Proxy = deps.readAddress(".l1Proxy");
         (uint256 l1CallValue,) = L1ProxyLike(l1Proxy).estimateDepositCost(2 * block.basefee, 0, 0);
 
-        vm.startBroadcast();
+        vm.startBroadcast(l1PrivKey);
         if (l1Proxy.balance < l1CallValue) {
             (bool success,) = l1Proxy.call{value: l1CallValue - l1Proxy.balance}("");
             require(success, "l1Proxy topup failed");

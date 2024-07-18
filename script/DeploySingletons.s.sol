@@ -31,7 +31,11 @@ interface L1GovernanceRelayLike {
     function l2GovernanceRelay() external view returns (address);
 }
 
-contract DeployL2Singletons is Script {
+contract DeploySingletons is Script {
+
+    uint256 l2PrivKey = vm.envUint("L2_PRIVATE_KEY");
+    address l2Deployer = vm.addr(l2PrivKey);
+
     StdChains.Chain l1Chain;
     StdChains.Chain l2Chain;
     string config;
@@ -54,13 +58,12 @@ contract DeployL2Singletons is Script {
 
         // Check deployer's L2 nonce was burned on L1
 
-        (,deployer, ) = vm.readCallers();
         l2Domain.selectFork();
-        uint256 l2Nonce = vm.getNonce(deployer);
+        uint256 l2Nonce = vm.getNonce(l2Deployer);
         l1Domain.selectFork();
-        address next = vm.computeCreateAddress(deployer, l2Nonce);
+        address next = vm.computeCreateAddress(l2Deployer, l2Nonce);
         require(next.code.length == 0, "Deployer's next L2 address has code on L1");
-        uint256 l1Nonce = vm.getNonce(deployer);
+        uint256 l1Nonce = vm.getNonce(l2Deployer);
         require(l1Nonce > l2Nonce, "Deployer requires nonce burning on L1");
 
         chainlog = ChainLogLike(l1Domain.readConfigAddress("chainlog"));
@@ -69,7 +72,7 @@ contract DeployL2Singletons is Script {
 
         l2Domain.selectFork();
 
-        vm.startBroadcast();
+        vm.startBroadcast(l2PrivKey);
         etherForwarder = FarmProxyDeploy.deployL2EtherForwarder(l2GovRelay);
         l2Spell = FarmProxyDeploy.deployL2ProxySpell();
         vm.stopBroadcast();

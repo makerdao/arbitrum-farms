@@ -33,6 +33,8 @@ interface L2GovernanceRelayLike {
 contract Init is Script {
     using stdJson for string;
 
+    uint256 l1PrivKey = vm.envUint("L1_PRIVATE_KEY");
+
     StdChains.Chain l1Chain;
     StdChains.Chain l2Chain;
     string config;
@@ -105,7 +107,7 @@ contract Init is Script {
             distrChainlogKey:          "REWARDS_DISTRIBUTION_TKA_TKB_ARB"
         });
 
-        vm.startBroadcast();
+        vm.startBroadcast(l1PrivKey);
         uint256 minGovRelayBal = cfg.xchainMsg.maxSubmissionCost + cfg.xchainMsg.maxGas * cfg.xchainMsg.gasPriceBid;
         if (l1GovRelay.balance < minGovRelayBal) {
             (bool success,) = l1GovRelay.call{value: minGovRelayBal - l1GovRelay.balance}("");

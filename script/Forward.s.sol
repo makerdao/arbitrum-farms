@@ -30,6 +30,8 @@ interface L2ProxyLike {
 contract Forward is Script {
     using stdJson for string;
 
+    uint256 l2PrivKey = vm.envUint("L2_PRIVATE_KEY");
+
     function run() external {
         StdChains.Chain memory l1Chain = getChain(string(vm.envOr("L1", string("mainnet"))));
         StdChains.Chain memory l2Chain = getChain(string(vm.envOr("L2", string("arbitrum_one"))));
@@ -41,7 +43,7 @@ contract Forward is Script {
        
         address l2Proxy = deps.readAddress(".l2Proxy");
 
-        vm.startBroadcast();
+        vm.startBroadcast(l2PrivKey);
         L2ProxyLike(l2Proxy).forwardReward();
         vm.stopBroadcast();
     }

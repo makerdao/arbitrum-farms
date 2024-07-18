@@ -44,6 +44,9 @@ contract Estimate is Script {
     uint256 constant MAX_L1_BASE_FEE_ESTIMATE = 1 gwei; // worst-case estimate for l1BaseFeeEstimate (representing the blob base fee) returned from https://github.com/OffchainLabs/nitro-contracts/blob/90037b996509312ef1addb3f9352457b8a99d6a6/src/node-interface/NodeInterface.sol#L95
     bool    constant USE_DAI_BRIDGE = true;             // set to true if the new token gateway isn't yet initiated
 
+    uint256 l1PrivKey = vm.envUint("L1_PRIVATE_KEY");
+    address l1Deployer = vm.addr(l1PrivKey);
+
     function run() external {
         // Note: this script should not be run on testnet as l1BaseFeeEstimate can sometimes be 0 on sepolia
         StdChains.Chain memory l1Chain = getChain(string("mainnet"));
@@ -53,8 +56,7 @@ contract Estimate is Script {
         Domain l1Domain = new Domain(config, l1Chain);
         Domain l2Domain = new Domain(config, l2Chain);
         l1Domain.selectFork();
-       
-        (, address deployer,) = vm.readCallers();
+
         ChainLogLike chainlog = ChainLogLike(l1Domain.readConfigAddress("chainlog"));
         address l1Gateway;
         address l1Token;
@@ -69,9 +71,9 @@ contract Estimate is Script {
 
         bytes memory finalizeDepositCalldata = GatewayLike(l1Gateway).getOutboundCalldata({
             l1Token: l1Token, 
-            from:    deployer,
-            to:      address(uint160(uint256(keccak256(abi.encode(deployer, block.timestamp))))), // a pseudo-random address used as "fresh" destination address,
-            amount:  uint128(uint256(keccak256(abi.encode(deployer)))), // very large random-looking number => costlier calldata 
+            from:    l1Deployer,
+            to:      address(uint160(uint256(keccak256(abi.encode(l1Deployer, block.timestamp))))), // a pseudo-random address used as "fresh" destination address,
+            amount:  uint128(uint256(keccak256(abi.encode(l1Deployer)))), // very large random-looking number => costlier calldata 
             data:    ""
         });
         bytes memory data = abi.encodeWithSignature(
