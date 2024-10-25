@@ -25,6 +25,15 @@ contract L1TokenGatewayMock {
     address public immutable inbox;
     address public immutable escrow;
 
+    address public lastL1Token;
+    address public lastRefundTo;
+    address public lastTo;
+    uint256 public lastAmount;
+    uint256 public lastMaxGas;
+    uint256 public lastGasPriceBid;
+    bytes32 public lastDataHash;
+    uint256 public lastValue;
+
     constructor(
         address _inbox,
         address _escrow
@@ -35,13 +44,22 @@ contract L1TokenGatewayMock {
 
     function outboundTransferCustomRefund(
         address l1Token,
-        address /* refundTo */,
-        address /* to */,
+        address refundTo,
+        address to,
         uint256 amount,
-        uint256 /* maxGas */,
-        uint256 /* gasPriceBid */,
-        bytes calldata /* data */
+        uint256 maxGas,
+        uint256 gasPriceBid,
+        bytes calldata data
     ) public payable returns (bytes memory res) {
+        lastL1Token = l1Token;
+        lastRefundTo = refundTo;
+        lastTo = to;
+        lastAmount = amount;
+        lastMaxGas = maxGas;
+        lastGasPriceBid = gasPriceBid;
+        lastDataHash = keccak256(data);
+        lastValue = msg.value;
+
         TokenLike(l1Token).transferFrom(msg.sender, escrow, amount);
         res = abi.encode(0);
     }
