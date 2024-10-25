@@ -12,3 +12,6 @@ docs/
 .env
 
 deployed-[0-9]*.json
+
+# Certora
+.certora_internal
